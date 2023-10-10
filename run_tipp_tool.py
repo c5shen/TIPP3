@@ -10,7 +10,7 @@ import argparse
 import os
 from argparse import Namespace
 import sepp.config
-import sepp.metagenomics
+import tipp.metagenomics
 import sepp
 
 

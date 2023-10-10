@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sepp.exhaustive_tipp import main
+from tipp.exhaustive_tipp import main
 
 # #########################################################################, a#
 #    Copyright 2012 Siavash Mirarab, Nam Nguyen, and Tandy Warnow.

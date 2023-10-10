@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from sepp.metagenomics import main
+from tipp.metagenomics import main
 
 # #########################################################################, a#
 #    Copyright 2014 Siavash Mirarab, Nam Nguyen, and Tandy Warnow.
