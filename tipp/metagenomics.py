@@ -233,8 +233,19 @@ def build_profile(input, output_directory):
             extra = extra + "-F %d" % options().max_chunk_size
         if options().cutoff != 0:
             extra = extra + " -C %f" % options().cutoff
+        '''
+            10.12.2023 - Chengze Shen
+            > pass the placer argument to run_tipp.py
+        '''
+        if options().placer != None:
+            extra = extra + " --placer {}".format(options().placer.lower())
 
-        cmd = "run_tipp.py " \
+        '''
+            10.12.2023 - Chengze Shen
+            > making sure that THIS TIPP3 version is run.
+        '''
+        rootdir = os.path.join(os.path.split(os.path.split(__file__)[0])[0])
+        cmd = rootdir + "/run_tipp.py " \
             + " -c " + tipp_config_path \
             + " --cpu " + str("%d" % cpus) \
             + " -m " + options().molecule \
@@ -999,6 +1010,15 @@ def augment_parser():
         dest="genes", metavar="GENES",
         default="markers-v3",
         help="Set of markers to use [default: markers-v3]")
+
+    '''
+        10.12.2023 - Chengze Shen
+        > Added option to pick another placement method
+    '''
+    tippGroup.add_argument(
+        "--placer", type=str, dest="placer",
+        default=None, choices=["pplacer", "bscampp"],
+        help="Placement method, default: bscampp")
 
 
 def main():

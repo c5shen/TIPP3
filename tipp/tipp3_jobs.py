@@ -6,7 +6,7 @@ from abc import abstractmethod
 from subprocess import Popen
 import sepp
 
-import os, shutil, subprocess, stat, re traceback
+import os, shutil, subprocess, stat, re, traceback
 import sepp.config
 
 import io

@@ -1,1 +1,5 @@
 ARCHIVED/
+__pycache__
+home.path
+*.pyc
+.tipp/

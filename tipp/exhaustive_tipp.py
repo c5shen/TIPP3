@@ -11,6 +11,9 @@ from sepp.algorithm import AbstractAlgorithm
 from sepp.alignment import MutableAlignment, ExtendedAlignment
 from sepp.jobs import HMMBuildJob, HMMSearchJob, HMMAlignJob, PplacerJob,\
     ExternalSeppJob
+
+from tipp.tipp3_jobs import BscamppJob
+
 from sepp.problem import SeppProblem, RootProblem
 from sepp.scheduler import JobPool, Join
 from sepp.tree import PhylogeneticTree
@@ -188,7 +191,15 @@ class TIPPJoinAlignJobs(JoinAlignJobs):
                 queryExtendedAlignment.write_to_path(
                     pj.extended_alignment_file)
                 base_alignment.write_to_path(pj.backbone_alignment_file)
-
+            elif self.placer == "bscampp":
+                '''
+                    10.12.2023 - Chengze Shen
+                    > Using BSCAMPP for placement
+                '''
+                assert isinstance(pj, BscamppJob)
+                queryExtendedAlignment.write_to_path(
+                    pj.extended_alignment_file)
+                base_alignment.write_to_path(pj.backbone_alignment_file)
             elif self.placer == "epa":
                 # assert isinstance(pj, EPAJob)
                 raise ValueError("EPA Currently not supported")
@@ -305,6 +316,13 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
         ExhaustiveAlgorithm.__init__(self)
         self.alignment_threshold = self.options.alignment_threshold
         self.placer = self.options.exhaustive.placer.lower()
+        '''
+            10.12.2023 - Chengze Shen
+            > if defined by parser, then use it instead
+        '''
+        if self.options.placer != None:
+            self.placer = self.options.placer.lower()
+
         self.push_down = True if self.options.push_down is True else False
         _LOG.info("Will push fragments %s from their placement edge." % (
             "down" if self.push_down else "up"))
@@ -371,6 +389,14 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
                 pj = None
                 if self.placer == "pplacer":
                     pj = PplacerJob()
+                    pj.partial_setup_for_subproblem(
+                        placement_problem, self.options.info_file, i)
+                elif self.placer == "bscampp":
+                    '''
+                        10.12.2023 - Chengze Shen
+                        > Create BscamppJob
+                    '''
+                    pj = BscamppJob()
                     pj.partial_setup_for_subproblem(
                         placement_problem, self.options.info_file, i)
                 elif self.placer == "epa":
@@ -566,6 +592,15 @@ def augment_parser():
         help="Placement probability requirement to count toward the"
              " distribution. "
              "This should be a number between 0 and 1 [default: 0.0]")
+
+    '''
+        10.12.2023 - Chengze Shen
+        > Added option to pick another placement method
+    '''
+    tippGroup.add_argument(
+        "--placer", type=str, dest="placer",
+        default=None, choices=["pplacer", "bscampp"],
+        help="Placement method, default: bscampp")
 
 
 def main():
