@@ -200,6 +200,11 @@ class TIPPJoinAlignJobs(JoinAlignJobs):
                 queryExtendedAlignment.write_to_path(
                     pj.extended_alignment_file)
                 base_alignment.write_to_path(pj.backbone_alignment_file)
+                # write a masked version of the full extended alignment to local
+                # THIS IS NEEDED BY BSCAMPP/EPA-ng
+                fullExtendedAlignment.remove_insertion_columns()
+                fullExtendedAlignment.write_to_path(
+                        pj.full_extended_alignment_file, 'FASTA')
             elif self.placer == "epa":
                 # assert isinstance(pj, EPAJob)
                 raise ValueError("EPA Currently not supported")
@@ -213,9 +218,9 @@ class TIPPJoinAlignJobs(JoinAlignJobs):
             # fullExtendedAlignment)
 
             # TODO: Removed this, as it can cause unexpected lockups
-            output = open(pj.full_extended_alignment_file, 'wb')
-            pickle.dump(fullExtendedAlignment, output)
-            output.close()
+            #output = open(pj.full_extended_alignment_file, 'wb')
+            #pickle.dump(fullExtendedAlignment, output)
+            #output.close()
 
             # Enqueue the placement job
             JobPool().enqueue_job(pj)
@@ -383,6 +388,7 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
 
     def build_jobs(self):
         assert isinstance(self.root_problem, RootProblem)
+        _LOG.info('TIPP job with options: %s' % self.options)
         for placement_problem in self.root_problem.get_children():
             ''' Create placer jobs'''
             for i in range(0, self.root_problem.fragment_chunks):
@@ -398,7 +404,7 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
                     '''
                     pj = BscamppJob()
                     pj.partial_setup_for_subproblem(
-                        placement_problem, self.options.info_file, i)
+                        placement_problem, self.options.model_file, i)
                 elif self.placer == "epa":
                     raise ValueError("EPA Currently not supported")
                     # pj = EPAJob()
@@ -455,6 +461,7 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
         jsj.setup_with_root_problem(self.root_problem)
 
     def load_reference(self, reference_pkg):
+        _LOG.info('Loading reference from %s' % reference_pkg)
         file = open(reference_pkg + 'CONTENTS.json')
         result = json.load(file)
         file.close()
@@ -466,6 +473,7 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
             reference_pkg + result['files']['aln_fasta'])
         options().tree_file = open(reference_pkg + result['files']['tree'])
         options().info_file = reference_pkg + result['files']['tree_stats']
+        options().model_file = reference_pkg + result['files']['model']
 
     def read_alignment_and_tree(self):
         (alignment, tree) = AbstractAlgorithm.read_alignment_and_tree(self)
@@ -491,6 +499,9 @@ class TIPPExhaustiveAlgorithm(ExhaustiveAlgorithm):
 
     def get_alignment_decomposition_tree(self, p_tree):
         assert isinstance(p_tree, PhylogeneticTree)
+        #_LOG('p_tree leaf count: %d' % (p_tree.count_leaves()))
+        #_LOG('self.root_problem.subtree leaf count: %d' 
+        #        % (self.root_problem.subtree.count_leaves()))
         if self.options.alignment_decomposition_tree is None:
             return PhylogeneticTree(Tree(p_tree.den_tree))
         elif p_tree.count_leaves() != self.root_problem.subtree.count_leaves():
@@ -601,7 +612,9 @@ def augment_parser():
         "--placer", type=str, dest="placer",
         default=None, choices=["pplacer", "bscampp"],
         help="Placement method, default: bscampp")
-
+    tippGroup.add_argument(
+        "--model-file", type=str, dest="model_file",
+        default=None, help="Model file for BSCAMPP to use, default: None")
 
 def main():
     augment_parser()

@@ -7,6 +7,10 @@ import sepp
 from sepp.alignment import MutableAlignment
 from sepp.alignment import _write_fasta
 from sepp.config import options
+from sepp import get_logger
+
+_LOG = get_logger(__name__)
+
 '''
 Collection of functions for metagenomic pipeline for taxonomic classification
 Created on June 3, 2014
@@ -196,13 +200,16 @@ def build_profile(input, output_directory):
 
         if placement_size is None:
             # placement_size = max(default_subset_size, alignment_size)
-            placement_size = 10000  # Needs to be large
+            placement_size = 1000000  # Needs to be large
 
         if alignment_size > total_taxa:
             alignment_size = total_taxa
 
         if placement_size > total_taxa:
             placement_size = total_taxa
+
+        _LOG.info('placement size: %d, alignment_size: %d' %
+                (placement_size, alignment_size))
 
         if alignment_size != placement_size:
             if placement_size < total_taxa:
@@ -239,6 +246,8 @@ def build_profile(input, output_directory):
         '''
         if options().placer != None:
             extra = extra + " --placer {}".format(options().placer.lower())
+            if options().placer.lower() == 'bscampp':
+                extra = extra + ' --model-file {}'.format(refpkg[gene]['raxml-model-file'])
 
         '''
             10.12.2023 - Chengze Shen
@@ -785,12 +794,15 @@ def blast_to_markers(input, temp_dir):
             if sstart > send:
                 seq = reverse_sequence(seq)
 
-            binned_fragments[gene]["fptr"].write('>' + header + '\n')
-            binned_fragments[gene]["fptr"].write(seq + '\n')
-            binned_fragments[gene]["nfrags"] += 1
-            f.write(header + ',' + sseqid + ',' + gene + ','
-                    + str(trim_qstart + 1) + ',' + str(trim_qend) + ','
-                    + str(qlen) + '\n')
+            ##### Changed 10.27.2023 - Chengze Shen
+            # only consider the marker genes defined in ref package
+            if gene in binned_fragments:
+                binned_fragments[gene]["fptr"].write('>' + header + '\n')
+                binned_fragments[gene]["fptr"].write(seq + '\n')
+                binned_fragments[gene]["nfrags"] += 1
+                f.write(header + ',' + sseqid + ',' + gene + ','
+                        + str(trim_qstart + 1) + ',' + str(trim_qend) + ','
+                        + str(qlen) + '\n')
 
     for gene in refpkg["genes"]:
         binned_fragments[gene]["fptr"].close()
@@ -1005,11 +1017,15 @@ def augment_parser():
              "distribution. "
              "This should be a number between 0 and 1 [default: 0.0]")
 
+    '''
+        10.13.2023 - Chengze Shen
+        > changed default to markers-v4 (new one created by me)
+    '''
     tippGroup.add_argument(
         "-G", "--genes", type=str,
         dest="genes", metavar="GENES",
-        default="markers-v3",
-        help="Set of markers to use [default: markers-v3]")
+        default="markers-v4",
+        help="Set of markers to use [default: markers-v4]")
 
     '''
         10.12.2023 - Chengze Shen

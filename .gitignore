@@ -3,3 +3,4 @@ __pycache__
 home.path
 *.pyc
 .tipp/
+main.config

@@ -28,22 +28,22 @@ class BscamppJob(ExternalSeppJob):
         # initialize parameters
         self.backbone_alignment_file = None
         self.tree_file = None
-        self.info_file = None
+        self.model_file = None
         self.extended_alignment_file = None
         self.full_extended_alignment_file = None
         self.out_file = None
 
-    def setup(self, backbone_alignment_file, tree_file, info_file,
+    def setup(self, backbone_alignment_file, tree_file, model_file,
             extended_alignment_file, full_extended_alignment_file,
             out_file, **kwargs):
         self.backbone_alignment_file = backbone_alignment_file
         self.tree_file = tree_file
-        self.info_file = info_file
+        self.model_file = model_file
         self.extended_alignment_file = extended_alignment_file
         self.full_extended_alignment_file = full_extended_alignment_file
         self.out_file = out_file
 
-    def partial_setup_for_subproblem(self, subproblem, info_file, i, **kwargs):
+    def partial_setup_for_subproblem(self, subproblem, model_file, i, **kwargs):
         assert isinstance(subproblem, sepp.problem.SeppProblem)
         self.backbone_alignment_file = sepp.filemgr.tempfile_for_subproblem(
                 'bscampp.backbone.', subproblem, '.fasta')
@@ -63,8 +63,9 @@ class BscamppJob(ExternalSeppJob):
         assert isinstance(subproblem.subtree, PhylogeneticTree)
         subproblem.subtree.write_newick_to_path(self.tree_file,)
 
-        self.info_file = info_file.name \
-                if hasattr(info_file, 'name') else info_file
+        self.model_file = model_file.name \
+                if hasattr(model_file, 'name') else model_file
+        self.tmpfilenbr = i
         self._kwargs = kwargs
     
     def get_invocation(self):
@@ -74,16 +75,17 @@ class BscamppJob(ExternalSeppJob):
 
         invoc.extend(['-o', '.'.join(self.out_file.split('/')[-1].split('.')[:-1]),
                       '-t', self.tree_file,
-                      '-i', self.info_file,
+                      '-i', self.model_file,
                       '-a', self.full_extended_alignment_file,
+                      '--tmpfilenbr', str(self.tmpfilenbr),
                       '-b', '100', '--threads', '1'])
         return invoc
     
     def characterize_input(self):
-        return ('backbone_alignment_file:%s, tree_file:%s, info_file:%s, '
+        return ('backbone_alignment_file:%s, tree_file:%s, model_file:%s, '
                 'full_extended_alignment_file:%s, output:%s') % (
                     self.backbone_alignment_file, self.tree_file,
-                    self.info_file, self.full_extended_alignment_file,
+                    self.model_file, self.full_extended_alignment_file,
                     self.out_file)
 
     def read_results(self):
