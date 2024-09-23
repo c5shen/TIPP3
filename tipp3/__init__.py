@@ -21,11 +21,19 @@ import logging
 import os
 
 
-__all__ = ['exhaustive_tipp', 'metagenomics']
+'''
+Updated @9.22.2024 by Chengze Shen
 
-version = "1.1.0"
-_DEBUG = ("SEPP_DEBUG" in os.environ) and \
-    (os.environ["SEPP_DEBUG"].lower() == "true")
+Major changes to suit TIPP3 pipeline.
+'''
+
+#__all__ = ['exhaustive_tipp', 'metagenomics']
+__all__ = ['read_binning', 'read_alignment', 'read_placement',
+        'tipp3_pipeline', 'utils', 'refpkg_downloader']
+
+version = "1.0.0"
+#_DEBUG = ("SEPP_DEBUG" in os.environ) and \
+#    (os.environ["SEPP_DEBUG"].lower() == "true")
 
 _INSTALL_PATH = __path__[0]
 
@@ -38,17 +46,23 @@ def get_setup_path():
     return _INSTALL_PATH
 
 
-def get_logging_level():
-    return logging.DEBUG if _DEBUG else logging.INFO
-
+def get_logging_level(logging_level='info'):
+    #### logging level map ####
+    logging_level_map = {
+            'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
+            'WARNING': logging.WARNING, 'ERROR': logging.ERROR,
+            'CRITICAL': logging.CRITICAL,
+            }
+    ll = logging_level.upper()
+    return logging_level_map.get(ll, logging.INFO) 
+    #return logging.DEBUG if _DEBUG else logging.INFO
 
 __set_loggers = set()
 
-
-def get_logger(name="sepp"):
+def get_logger(name="tipp3", logging_level='info'):
     logger = logging.getLogger(name)
     if name not in __set_loggers:
-        level = get_logging_level()
+        level = get_logging_level(logging_level)
         logging_formatter = logging.Formatter(
             ("[%(asctime)s] %(filename)s (line %(lineno)d):"
              " %(levelname) 8s: %(message)s"))
@@ -62,18 +76,19 @@ def get_logger(name="sepp"):
     return logger
 
 
-def reset_loggers():
-    global __set_loggers
-    __set_loggers = set()
-    import pkgutil
-    import sepp
-    package = sepp
-    for modl, name, _ in pkgutil.iter_modules(package.__path__):
-        logger = (getattr(getattr(sepp, name, None), "_LOG", None))
-        print("--- *", name, logger)
-        if logger:
-            setattr(getattr(sepp, name, None), "_LOG", get_logger(
-                "sepp.%s" % name))
+#### unused for TIPP3 for now
+#def reset_loggers():
+#    global __set_loggers
+#    __set_loggers = set()
+#    import pkgutil
+#    import sepp
+#    package = sepp
+#    for modl, name, _ in pkgutil.iter_modules(package.__path__):
+#        logger = (getattr(getattr(sepp, name, None), "_LOG", None))
+#        print("--- *", name, logger)
+#        if logger:
+#            setattr(getattr(sepp, name, None), "_LOG", get_logger(
+#                "tipp3.%s" % name))
 
 
 def log_exception(logger):
