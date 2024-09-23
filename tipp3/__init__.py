@@ -29,7 +29,7 @@ Major changes to suit TIPP3 pipeline.
 
 #__all__ = ['exhaustive_tipp', 'metagenomics']
 __all__ = ['read_binning', 'read_alignment', 'read_placement',
-        'tipp3_pipeline', 'utils', 'refpkg_downloader']
+        'tipp3_pipeline', 'utils', 'jobs', 'refpkg_downloader']
 
 version = "1.0.0"
 #_DEBUG = ("SEPP_DEBUG" in os.environ) and \

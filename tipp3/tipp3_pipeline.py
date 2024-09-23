@@ -12,10 +12,10 @@ from tipp3.read_binning import read_binning
 from tipp3.read_alignment import read_alignment
 from tipp3.read_placement import read_placement
 from tipp3.utils import *
-from tipp3.config import Config 
+from tipp3.configs import Configs 
 
 _LOG = get_logger(__name__)
-global levels, character_map, taxon_map, level_map, key_map, refpkg
+global levels, character_map, taxon_map, level_map, key_map
 character_map = {'A': 'T', 'a': 't', 'C': 'G', 'c': 'g', 'T': 'A',
                  't': 'a', 'G': 'C', 'g': 'c', '-': '-'}
 levels = ["species", "genus", "family", "order",
@@ -25,10 +25,10 @@ levels = ["species", "genus", "family", "order",
 # Main pipeline of TIPP3
 def tipp3_pipeline(*args, **kwargs):
     # (0) load refpkg
-
+    refpkg = load_reference_package()
 
     # (1) read binning against the TIPP3 refpkg using BLAST
-
+    read_binning(refpkg)
 
     # (2) read alignment to corresponding marker genes
 
@@ -42,14 +42,18 @@ def tipp3_pipeline(*args, **kwargs):
 Load TIPP3 reference package in
 '''
 def load_reference_package():
-    #TODO
-    global refpkg
-
     refpkg = {}
 
-    path = os.path.join(options().__getattribute__('reference').path,
-                        options().genes)
+    # refpkg dir path from commandline
+    path = os.path.join(Configs.refpkg_path, Configs.refpkg_version)
     input = os.path.join(path, "file-map-for-tipp.txt")
+    _LOG.INFO('Reading refpkg from {}'.format(path))
+
+    # load exclusion list, if any
+    exclusion = set() 
+    if getattr(Configs, 'Refpkg', None) != None:
+        if 'exclusion' in Configs.Refpkg.__dict__:
+            exclusion = set(Configs.Refpkg['exclusion'])
 
     refpkg["genes"] = []
     with open(input) as f:
@@ -68,5 +72,10 @@ def load_reference_package():
             if (key1 != "blast") and (key1 != "taxonomy"):
                 refpkg["genes"].append(key1)
 
-    refpkg["genes"] = set(refpkg["genes"])
+    # excluding marker genes if specified
+    refpkg["genes"] = set(refpkg["genes"]).difference(exclusion)
     refpkg["genes"] = list(refpkg["genes"])
+    _LOG.INFO('Marker genes: {}'.format(refpkg["genes"]))
+    _LOG.INFO('Number of marker genes: {}'.format(len(refpkg["genes"])))
+
+    return refpkg

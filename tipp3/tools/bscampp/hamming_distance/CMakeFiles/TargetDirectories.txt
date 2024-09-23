@@ -1,0 +1,5 @@
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/rebuild_cache.dir
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/edit_cache.dir
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/fragment_tree_hamming.dir
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/fragment_hamming.dir
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/hamming.dir

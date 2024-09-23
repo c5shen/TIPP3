@@ -86,7 +86,7 @@ def init_config_file(homepath, prioritize_user_software=True):
     # as main.config
     platform_name = platform()
     tools_dir = os.path.join(os.path.dirname(__file__), 'tools')
-    set_sections = ['Basic', 'WITCH', 'BLAST']
+    set_sections = ['Basic']
 
     # copy magus directory to tools/
     #magus_dir = os.path.join(tools_dir, 'magus')

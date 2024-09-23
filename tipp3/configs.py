@@ -1,5 +1,4 @@
-import os
-import time
+import os, time
 try:
     import configparser
 except ImportError:
@@ -7,7 +6,6 @@ except ImportError:
 from argparse import ArgumentParser, Namespace
 from platform import platform
 from tipp3.init_configs import init_config_file
-from tipp3.alignment_tools import inferDataType
 from tipp3 import get_logger
 
 _LOG = get_logger(__name__)
@@ -32,40 +30,32 @@ class Configs:
     global _root_dir
 
     # basic input items
-    #input_path = None
-    #backbone_path = None
-    #backbone_tree_path = None
     query_path = None
+    refpkg_path = None      # e.g., xxx/yyy/tipp3-refpkg
     outdir = None
-    #output_path = None
     config_file = None     # Added @ 7.25.2024 
     keeptemp = False
 
     # choices of parameters
     alignment_method = 'witch'  # or blast
-    placement_method = 'pplacer-taxtastic'  # or bscampp
-    
-    # WITCH configurations - preset 
-    #mode = 'witch-ng'
-    #num_hmms = 1
-    #use_weight = True 
-    #save_weight = False
-    #alignment_size = 10
-    #alignment_upper_bound = 1000
-    #bypass_setup = True
+    placement_method = 'pplacer-taxtastic'  # or other method
 
+    # binary paths (from config file)
+    pplacer_path = None
+    bscampp_path = None
+    blastn_path = None
+    witch_path = None
+
+    # reference package dir path
+    refpkg_version = 'markers-v4'
+
+    # Multiprocessing settings
     num_cpus = -1
     max_concurrent_jobs = None
 
+    # logging output path
     log_path = None
 
-    @staticmethod
-    def inferDataType(path):
-        if Configs.molecule is None: 
-            Configs.molecule = inferDataType(path)
-            Configs.log('Molecule type was not specified. Inferred type: {}'.format(
-                Configs.molecule))
-        return Configs.molecule
 
 # check for valid configurations and set them
 def set_valid_configuration(name, conf):
@@ -90,6 +80,8 @@ def set_valid_configuration(name, conf):
             #        '{} does not exist'.format(os.path.realpath(str(attr)))
             setattr(Configs, k, attr)
     elif name == 'WITCH':
+        setattr(Configs, name, conf)
+    elif name == 'Refpkg':
         setattr(Configs, name, conf)
     else:
         pass
@@ -173,19 +165,24 @@ def buildConfigs(parser, cmdline_args):
     args = parser.parse_args(cmdline_default + cmdline_user + cmdline_args,
             namespace=default_args)
 
-    if args.query_path != None:
-        Configs.query_path = os.path.realpath(args.query_path)
-    
+    # Must have
+    Configs.query_path = os.path.realpath(args.query_path)
+    Configs.refpkg_path = os.path.realpath(args.refpkg_path)
     Configs.outdir = os.path.realpath(args.outdir)
+
     if not os.path.exists(Configs.outdir):
         os.makedirs(Configs.outdir)
+    Configs.log_path = os.path.join(Configs.outdir, 'tipp3.log')
 
     Configs.keeptemp = args.keeptemp
 
-    Configs.log_path = os.path.join(Configs.outdir, 'log.txt')
+    # alignment_method and placement_method, and refpkg version
+    Configs.alignment_method = args.alignment_method
+    Configs.placement_method = args.placement_method
+    Configs.refpkg_version = args.refpkg_version
 
     if args.num_cpus > 0:
-        Configs.num_cpus = args.num_cpus
+        Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
     else:
         Configs.num_cpus = os.cpu_count()
 

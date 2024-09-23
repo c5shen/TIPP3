@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/hamming.dir/new_hamming.cpp.o -o hamming  -Wl,-rpath,/usr/lib/gcc/x86_64-linux-gnu/10 /usr/lib/gcc/x86_64-linux-gnu/10/libgomp.so /usr/lib/x86_64-linux-gnu/libpthread.so 

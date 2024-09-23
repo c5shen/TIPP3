@@ -1,0 +1,161 @@
+Performing C++ SOURCE FILE Test CPP20_FLAG_BUILTIN failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_dcbb1/fast && /usr/bin/make -f CMakeFiles/cmTC_dcbb1.dir/build.make CMakeFiles/cmTC_dcbb1.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_dcbb1.dir/src.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include  -DCPP20_FLAG_BUILTIN   -o CMakeFiles/cmTC_dcbb1.dir/src.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx:2:8: error: #error NOCXX20
+    2 |       #error NOCXX20
+      |        ^~~~~
+make[1]: *** [CMakeFiles/cmTC_dcbb1.dir/build.make:66: CMakeFiles/cmTC_dcbb1.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_dcbb1/fast] Error 2
+
+
+Source file was:
+#if !defined (__cplusplus) || (__cplusplus < 201709)
+      #error NOCXX20
+      #endif
+      int main() {}
+Performing C++ SOURCE FILE Test CPP20_FLAG_STD20 failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_dd9cb/fast && /usr/bin/make -f CMakeFiles/cmTC_dd9cb.dir/build.make CMakeFiles/cmTC_dd9cb.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_dd9cb.dir/src.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include  -DCPP20_FLAG_STD20  -std=c++20   -o CMakeFiles/cmTC_dd9cb.dir/src.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx
+c++: error: unrecognized command line option ‘-std=c++20’; did you mean ‘-std=c++2a’?
+make[1]: *** [CMakeFiles/cmTC_dd9cb.dir/build.make:66: CMakeFiles/cmTC_dd9cb.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_dd9cb/fast] Error 2
+
+
+Source file was:
+#if !defined (__cplusplus) || (__cplusplus < 201709)
+      #error NOCXX20
+      #endif
+      int main() {}
+Performing C++ SOURCE FILE Test CONCEPTS_FLAG_BUILTIN failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_33a48/fast && /usr/bin/make -f CMakeFiles/cmTC_33a48.dir/build.make CMakeFiles/cmTC_33a48.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_33a48.dir/src.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include  -DCONCEPTS_FLAG_BUILTIN   -o CMakeFiles/cmTC_33a48.dir/src.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx:1:16: error: ‘__cpp_concepts’ was not declared in this scope
+    1 | static_assert (__cpp_concepts >= 201507);                         int main() {}
+      |                ^~~~~~~~~~~~~~
+make[1]: *** [CMakeFiles/cmTC_33a48.dir/build.make:66: CMakeFiles/cmTC_33a48.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_33a48/fast] Error 2
+
+
+Source file was:
+static_assert (__cpp_concepts >= 201507);                         int main() {}
+Performing C++ SOURCE FILE Test CONCEPTS_FLAG_STD20 failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_4480c/fast && /usr/bin/make -f CMakeFiles/cmTC_4480c.dir/build.make CMakeFiles/cmTC_4480c.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_4480c.dir/src.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include  -DCONCEPTS_FLAG_STD20  -std=c++20   -o CMakeFiles/cmTC_4480c.dir/src.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx
+c++: error: unrecognized command line option ‘-std=c++20’; did you mean ‘-std=c++2a’?
+make[1]: *** [CMakeFiles/cmTC_4480c.dir/build.make:66: CMakeFiles/cmTC_4480c.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_4480c/fast] Error 2
+
+
+Source file was:
+static_assert (__cpp_concepts >= 201507);                         int main() {}
+Performing C++ SOURCE FILE Test CONCEPTS_FLAG_STD2a failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_4d84a/fast && /usr/bin/make -f CMakeFiles/cmTC_4d84a.dir/build.make CMakeFiles/cmTC_4d84a.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_4d84a.dir/src.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include  -DCONCEPTS_FLAG_STD2a  -std=c++2a   -o CMakeFiles/cmTC_4d84a.dir/src.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx:1:16: error: ‘__cpp_concepts’ was not declared in this scope
+    1 | static_assert (__cpp_concepts >= 201507);                         int main() {}
+      |                ^~~~~~~~~~~~~~
+make[1]: *** [CMakeFiles/cmTC_4d84a.dir/build.make:66: CMakeFiles/cmTC_4d84a.dir/src.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_4d84a/fast] Error 2
+
+
+Source file was:
+static_assert (__cpp_concepts >= 201507);                         int main() {}
+Performing C++ SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_c6f77/fast && /usr/bin/make -f CMakeFiles/cmTC_c6f77.dir/build.make CMakeFiles/cmTC_c6f77.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_c6f77.dir/src.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include  -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_c6f77.dir/src.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_c6f77
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c6f77.dir/link.txt --verbose=1
+/usr/bin/c++   -DCMAKE_HAVE_LIBC_PTHREAD    CMakeFiles/cmTC_c6f77.dir/src.cxx.o  -o cmTC_c6f77 
+/usr/bin/ld: CMakeFiles/cmTC_c6f77.dir/src.cxx.o: in function `main':
+src.cxx:(.text+0x46): undefined reference to `pthread_create'
+/usr/bin/ld: src.cxx:(.text+0x52): undefined reference to `pthread_detach'
+/usr/bin/ld: src.cxx:(.text+0x63): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+make[1]: *** [CMakeFiles/cmTC_c6f77.dir/build.make:87: cmTC_c6f77] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_c6f77/fast] Error 2
+
+
+Source file was:
+#include <pthread.h>
+
+void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the include file range/v3/version.hpp exists failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_5e2a0/fast && /usr/bin/make -f CMakeFiles/cmTC_5e2a0.dir/build.make CMakeFiles/cmTC_5e2a0.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_5e2a0.dir/CheckIncludeFile.cxx.o
+/usr/bin/c++   -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include   -o CMakeFiles/cmTC_5e2a0.dir/CheckIncludeFile.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx:1:10: fatal error: range/v3/version.hpp: No such file or directory
+    1 | #include <range/v3/version.hpp>
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTC_5e2a0.dir/build.make:66: CMakeFiles/cmTC_5e2a0.dir/CheckIncludeFile.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:121: cmTC_5e2a0/fast] Error 2
+
+
+
+Determining if the include file lemon/config.h exists failed with the following output:
+Change Dir: /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_d1bcc/fast && /usr/bin/make  -f CMakeFiles/cmTC_d1bcc.dir/build.make CMakeFiles/cmTC_d1bcc.dir/build
+make[1]: Entering directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_d1bcc.dir/CheckIncludeFile.cxx.o
+/usr/bin/c++  -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/include -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/submodules/sdsl-lite/include -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/submodules/range-v3/include -I/media/ellie/easystore/BATCH-SCAMPP/scripts/seqan3/submodules/cereal/include  -o CMakeFiles/cmTC_d1bcc.dir/CheckIncludeFile.cxx.o -c /media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx
+/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp/CheckIncludeFile.cxx:1:10: fatal error: lemon/config.h: No such file or directory
+    1 | #include <lemon/config.h>
+      |          ^~~~~~~~~~~~~~~~
+compilation terminated.
+make[1]: *** [CMakeFiles/cmTC_d1bcc.dir/build.make:78: CMakeFiles/cmTC_d1bcc.dir/CheckIncludeFile.cxx.o] Error 1
+make[1]: Leaving directory '/media/ellie/easystore/BATCH-SCAMPP/scripts/CMakeFiles/CMakeTmp'
+make: *** [Makefile:127: cmTC_d1bcc/fast] Error 2
+
+
+
