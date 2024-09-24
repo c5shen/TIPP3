@@ -20,23 +20,16 @@ from operator import itemgetter
 import logging
 import os
 
-
 '''
 Updated @9.22.2024 by Chengze Shen
 
 Major changes to suit TIPP3 pipeline.
 '''
-
-#__all__ = ['exhaustive_tipp', 'metagenomics']
-__all__ = ['read_binning', 'read_alignment', 'read_placement',
-        'tipp3_pipeline', 'utils', 'jobs', 'refpkg_downloader']
-
-version = "1.0.0"
-#_DEBUG = ("SEPP_DEBUG" in os.environ) and \
-#    (os.environ["SEPP_DEBUG"].lower() == "true")
-
+__version__ = "1.0.0"
 _INSTALL_PATH = __path__[0]
 
+__all__ = ['read_binning', 'read_alignment', 'read_placement',
+        'tipp3_pipeline', 'jobs', 'refpkg_downloader']
 
 def is_temp_kept():
     return _DEBUG

@@ -21,11 +21,11 @@ class BlastnJob:
         self.outfmt = 0
 
         # arguments for running BLASTN
-        self.path = None 
-        self.query_path = None
-        self.database_path = None
-        self.outdir = None
-        self.num_threads = None 
+        self.path = '' 
+        self.query_path = ''
+        self.database_path = ''
+        self.outdir = ''
+        self.num_threads = 1 
 
         for k, v in kwargs.items():
             setattr(self, k, v)
