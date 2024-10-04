@@ -21,7 +21,7 @@ import logging
 import os
 
 '''
-Updated @9.22.2024 by Chengze Shen
+Updated @ 9.22.2024 by Chengze Shen
 
 Major changes to suit TIPP3 pipeline.
 '''
@@ -52,7 +52,7 @@ def get_logging_level(logging_level='info'):
 
 __set_loggers = set()
 
-def get_logger(name="tipp3", logging_level='info'):
+def get_logger(name="tipp3", log_path=None, logging_level='info'):
     logger = logging.getLogger(name)
     if name not in __set_loggers:
         level = get_logging_level(logging_level)
@@ -61,7 +61,12 @@ def get_logger(name="tipp3", logging_level='info'):
              " %(levelname) 8s: %(message)s"))
         logging_formatter.datefmt = '%H:%M:%S'
         logger.setLevel(level)
-        ch = logging.StreamHandler()
+        if log_path == None:
+            ch = logging.StreamHandler()
+        else:
+            # use FileHandler instead
+            ch = logging.FileHandler(log_path, mode='a')
+
         ch.setLevel(level)
         ch.setFormatter(logging_formatter)
         logger.addHandler(ch)

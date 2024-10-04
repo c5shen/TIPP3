@@ -5,9 +5,6 @@ except ImportError:
     import ConfigParser as configparser
 from argparse import ArgumentParser, Namespace
 from platform import platform
-from tipp3 import get_logger
-
-_LOG = get_logger(__name__)
 
 def find_main_config(homepath):
     with open(homepath, 'r') as f:
@@ -88,14 +85,11 @@ def init_config_file(homepath, prioritize_user_software=True):
     tools_dir = os.path.join(os.path.dirname(__file__), 'tools')
     set_sections = ['Basic']
 
-    # copy magus directory to tools/
-    #magus_dir = os.path.join(tools_dir, 'magus')
-    #cparser.set('Basic', 'magus_path', magus_dir + '/magus.py')
     # default path to pplacer and BSCAMPP
     cparser.set('Basic', 'pplacer_path',
-            os.path.join(magus_dir, 'tools', 'pplacer', 'pplacer'))
+            os.path.join(tools_dir, 'pplacer', 'pplacer'))
     cparser.set('Basic', 'bscampp_path',
-            os.path.join(magus_dir, 'tools', 'bscampp', 'EPA-ng-BSCAMPP.py'))
+            os.path.join(tools_dir, 'bscampp', 'EPA-ng-BSCAMPP.py'))
 
     if 'macos' not in platform_name.lower():
         print('System is {}, using default config as main.config...'.format(

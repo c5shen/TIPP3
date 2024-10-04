@@ -8,11 +8,11 @@ from platform import platform
 from tipp3.init_configs import init_config_file
 from tipp3 import get_logger
 
-_LOG = get_logger(__name__)
-
 # detect home.path location or creating one if it is missing
 homepath = os.path.dirname(__file__) + '/home.path'
 _root_dir, main_config_path = init_config_file(homepath)
+
+_LOG = get_logger(__name__)
 
 # default tqdm style for progress bar
 tqdm_styles = {
@@ -28,6 +28,9 @@ Configurations defined by users
 '''
 class Configs:
     global _root_dir
+
+    ## logging output path
+    #log_path = None
 
     # basic input items
     query_path = None
@@ -53,14 +56,15 @@ class Configs:
     num_cpus = -1
     max_concurrent_jobs = None
 
-    # logging output path
-    log_path = None
-
+    # miscellaneous
+    bypass_setup = False
 
 # check for valid configurations and set them
 def set_valid_configuration(name, conf):
-    assert isinstance(conf, Namespace), \
-            'Looking for Namespace object but find {}'.format(type(conf))
+    if not isinstance(conf, Namespace):
+        _LOG.warning('Looking for Namespace object from \'{}\' but find {}'.format(
+            name, type(conf)))
+        return
 
     # backbone alignment settings
     if name == 'Basic':
@@ -73,7 +77,7 @@ def set_valid_configuration(name, conf):
                 assert str(attr).lower() in ['witch', 'blast', 'hmm'], \
                     'Alignment method {} not implemented'.format(attr)
             elif k == 'placement_method':
-                assert int(attr).lower() in ['pplacer-taxtastic', 'bscampp'], \
+                assert int(attr).lower() in ['pplacer', 'bscampp'], \
                     'Placement method {} not implemented'.format(attr)
             #elif k == 'path':
             #    assert os.path.exists(os.path.realpath(str(attr))), \
@@ -81,9 +85,12 @@ def set_valid_configuration(name, conf):
             setattr(Configs, k, attr)
     elif name == 'WITCH':
         setattr(Configs, name, conf)
+    elif name == 'BLAST':
+        setattr(Configs, name, conf)
     elif name == 'Refpkg':
         setattr(Configs, name, conf)
     else:
+        # not reading any invalid sections
         pass
 
 # valid attribute check
@@ -103,6 +110,7 @@ def getConfigs():
     for k, v in Configs.__dict__.items():
         if valid_attribute(k, v):
             print('\tConfigs.{}: {}'.format(k, v))
+    print('\n')
 
 '''
 Read in from config file if it exists. Any cmd-line provided configs will
@@ -111,29 +119,28 @@ override the config file.
 Original functionality comes from SEPP -> sepp/config.py
 '''
 def _read_config_file(filename, cparser, opts, expand=None):
-    Configs.debug('Reading config from {}'.format(filename))
+    _LOG.info('Reading config from {}'.format(filename))
     config_defaults = []
-    #cparser = configparser.ConfigParser()
-    #cparser.optionxform = str
-    cparser.read_file(filename)
 
-    if cparser.has_section('commandline'):
-        for k, v in cparser.items('commandline'):
-            config_defaults.append('--{}'.format(k))
-            config_defaults.append(v)
+    with open(filename, 'r') as cfile:
+        cparser.read_file(cfile)
+        if cparser.has_section('commandline'):
+            for k, v in cparser.items('commandline'):
+                config_defaults.append('--{}'.format(k))
+                config_defaults.append(v)
 
-    for section in cparser.sections():
-        if section == 'commandline':
-            continue
-        if getattr(opts, section, None):
-            section_name_space = getattr(opts, section)
-        else:
-            section_name_space = Namespace()
-        for k, v in cparser.items(section):
-            if expand and k == 'path':
-                v = os.path.join(expand, v)
-            section_name_space.__setattr__(k, v)
-        opts.__setattr__(section, section_name_space)
+        for section in cparser.sections():
+            if section == 'commandline':
+                continue
+            if getattr(opts, section, None):
+                section_name_space = getattr(opts, section)
+            else:
+                section_name_space = Namespace()
+            for k, v in cparser.items(section):
+                if expand and k == 'path':
+                    v = os.path.join(expand, v)
+                section_name_space.__setattr__(k, v)
+            opts.__setattr__(section, section_name_space)
     return config_defaults
 
 '''
@@ -145,11 +152,17 @@ def buildConfigs(parser, cmdline_args):
     cparser = configparser.ConfigParser()
     cparser.optionxform = str
 
+    # load cmdline args first and identify the output directory
+    # (to quickly create the outdir and log file
+    args = parser.parse_args(cmdline_args)
+    Configs.outdir = os.path.realpath(args.outdir)
+    if not os.path.exists(Configs.outdir):
+        os.makedirs(Configs.outdir)
+    #Configs.log_path = os.path.join(Configs.outdir, 'tipp3.log')
+
     # load default_args from main.config
     default_args = Namespace()
-    cmdline_default = []
-    with open(main_config_path, 'r') as cfile:
-        cmdline_default = _read_config_file(cfile, cparser, default_args)
+    cmdline_default = _read_config_file(main_config_path, cparser, default_args)
     
     # load cmdline args first, then search for user.config if specified
     args = parser.parse_args(cmdline_args)
@@ -157,8 +170,7 @@ def buildConfigs(parser, cmdline_args):
     if args.config_file != None:
         # override default_args
         Configs.config_file = args.config_file
-        with open(Configs.config_file, 'r') as cfile:
-            cmdline_user = _read_config_file(cfile, cparser, default_args)
+        cmdline_user = _read_config_file(Configs.config_file, cparser, default_args)
 
     # finally, re-parse cmdline args in the order:
     #   [cmdline_default, cmd_user, cmdline_args] 
@@ -168,11 +180,6 @@ def buildConfigs(parser, cmdline_args):
     # Must have
     Configs.query_path = os.path.realpath(args.query_path)
     Configs.refpkg_path = os.path.realpath(args.refpkg_path)
-    Configs.outdir = os.path.realpath(args.outdir)
-
-    if not os.path.exists(Configs.outdir):
-        os.makedirs(Configs.outdir)
-    Configs.log_path = os.path.join(Configs.outdir, 'tipp3.log')
 
     Configs.keeptemp = args.keeptemp
 
@@ -186,10 +193,10 @@ def buildConfigs(parser, cmdline_args):
     else:
         Configs.num_cpus = os.cpu_count()
 
-    if args.max_concurrent_jobs:
-        Configs.max_concurrent_jobs = args.max_concurrent_jobs
-    else:
-        Configs.max_concurrent_jobs = min(50, 10 * Configs.num_cpus)
+    #if args.max_concurrent_jobs:
+    #    Configs.max_concurrent_jobs = args.max_concurrent_jobs
+    #else:
+    #    Configs.max_concurrent_jobs = min(50, 10 * Configs.num_cpus)
 
     # add any additional arguments to Configs
     for k in args.__dict__.keys():

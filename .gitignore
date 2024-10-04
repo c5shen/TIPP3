@@ -1,6 +1,7 @@
 ARCHIVED/
-__pycache__
-home.path
-*.pyc
+tipp3_output/
 .tipp/
+__pycache__
+*.pyc
+home.path
 main.config
