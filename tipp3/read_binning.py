@@ -8,6 +8,7 @@ from collections import defaultdict
 from tipp3 import get_logger
 from tipp3.configs import Configs
 from tipp3.jobs import BlastnJob
+from tipp3.extract_blast_alignment import extractBlastAlignment
 
 _LOG = get_logger(__name__)
 
@@ -36,13 +37,20 @@ def readBinning(refpkg):
     blastn_outpath = job.run()
 
     # process BLASTN output
-    query_aln = processBlastnOutput(refpkg, blastn_outpath, blastn_outdir)
+    query_blast_paths, query_aln = processBlastnOutput(refpkg, blastn_outpath,
+            blastn_outdir)
 
     # write query reads to local for alignments, truncate if neccessary
     query_outdir = os.path.join(Configs.outdir, 'queries')
     query_paths = splitQueries(refpkg, query_aln, query_outdir)
 
-    return query_paths
+    # if Configs.alignment_method is BLAST, extract alignment at this step
+    query_alignment_paths = {}
+    if Configs.alignment_method == 'blast':
+        query_alignment_paths = extractBlastAlignment(refpkg,
+                Configs.outdir, query_blast_paths)
+
+    return query_paths, query_alignment_paths
 
 '''
 process the BLASTN output, extract assignment information and/or alignment
@@ -61,6 +69,7 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
     _LOG.info(f"Filtering BLASTN results: >= {threshold}bp coverage.")
 
     query_aln = readBlastnOutput(blastn_outpath, gene_mapping, threshold)
+    query_blast_paths = {}
     
     # read in marker genes to use
     markers = refpkg['genes']
@@ -88,9 +97,11 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
         _path = marker_fptr[marker]['path']
         # remove empty marker gene outputs
         if marker_fptr[marker]['count'] == 0:
-            _LOG.info(f'{marker} has no assigned queries, removing {_path}')
+            _LOG.debug(f'{marker} has no assigned queries, removing {_path}')
             os.system('rm {}'.format(_path))
-    return query_aln
+        else:
+            query_blast_paths[marker] = marker_fptr[marker]['path']
+    return query_blast_paths, query_aln
 
 
 ######################## HELPER FUNCTIONS ###########################
@@ -256,6 +267,7 @@ def splitQueries(refpkg, query_aln, query_outdir):
     # remove empty queries.fasta
     for marker, _outpath in ret.items():
         if os.stat(_outpath).st_size == 0:
-            _LOG.info(f'Removing redundant {marker}: {_outpath}')
+            _LOG.debug(f'Removing redundant {marker}: {_outpath}')
             os.remove(_outpath)
     return ret
+

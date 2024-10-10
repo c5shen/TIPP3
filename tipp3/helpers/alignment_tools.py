@@ -916,6 +916,33 @@ class ExtendedAlignment(MutableAlignment):
         self._reset_col_names()
         return ret
 
+    ############################################################
+    # Added by Chengze Shen @ 2.8.2024
+    #   - additional utility functions
+    def is_empty(self):
+        return self.__len__() < 1
+
+    def is_aligned(self):
+        if self.is_empty():
+            raise ValueError("The alignment is empty.\n")
+        else:
+            v = list(self.values())
+            first_seq_len = len(v[0])
+            return all([len(i) == first_seq_len for i in v])
+
+    def sequence_length(self):
+        if self.is_aligned():
+            return len(list(self.values())[0])
+
+    def sub_alignment(self, sub_keys):
+        "Creates an new alignment with a subset of the taxa."
+        new_alignment = ExtendedAlignment([])
+        for key in sub_keys:
+            if key in self:
+                new_alignment[key] = self[key]
+        return new_alignment
+    ############################################################
+
     def remove_missing_fragments(self):
         for frag in list(self.get_fragment_names()):
             if frag not in self:

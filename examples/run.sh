@@ -6,4 +6,5 @@ inpath=data/RplO_COG0200.queries.fasta
 refpkg=/home/chengze5/tallis/tipp3/tipp3-refpkg
 outdir=./tipp3_output
 
-$bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir}
+$bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
+    --alignment-method blast

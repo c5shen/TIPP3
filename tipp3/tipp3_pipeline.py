@@ -30,10 +30,11 @@ def tipp3_pipeline(*args, **kwargs):
     refpkg = loadReferencePackage()
 
     # (1) read binning against the TIPP3 refpkg using BLAST
-    query_paths = readBinning(refpkg)
+    query_paths, query_alignment_paths = readBinning(refpkg)
 
     # (2) read alignment to corresponding marker genes
-    query_alignment_paths = readAlignment(refpkg, query_paths)
+    if Configs.alignment_method != 'blast':
+        query_alignment_paths = readAlignment(refpkg, query_paths)
 
     # (3) read placement to corresponding marker gene taxonomic trees
 
