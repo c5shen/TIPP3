@@ -27,7 +27,7 @@ def tipp3_pipeline(*args, **kwargs):
     parseArguments()
 
     # (0) load refpkg
-    refpkg = loadReferencePackage()
+    refpkg = loadReferencePackage(Configs.refpkg_path, Configs.refpkg_version)
 
     # (1) read binning against the TIPP3 refpkg using BLAST
     query_paths, query_alignment_paths = readBinning(refpkg)
@@ -91,7 +91,7 @@ def _init_parser():
     basic_group.add_argument('-r', '--refpkg-path', '--refpkg',
             '--reference-package',
         type=str, help='Path to a TIPP3-compatible refpkg.',
-        required=True)
+        required=False, default=None)
     basic_group.add_argument('--refpkg-version',
         type=str, help='Version of the refpkg. [default: markers-v4]',
         default='markers-v4', required=False)

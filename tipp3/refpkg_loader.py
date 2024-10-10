@@ -7,11 +7,17 @@ _LOG = get_logger(__name__)
 '''
 Load TIPP3 reference package in
 '''
-def loadReferencePackage():
+def loadReferencePackage(refpkg_path, refpkg_version):
     refpkg = {}
 
+    # sanity check for the existence of refpkg_path
+    if not refpkg_path or not os.path.exists(refpkg_path):
+        errmsg = 'Refpkg does not exist: {}'.format(refpkg_path)
+        _LOG.error(errmsg)
+        raise ValueError(errmsg)
+
     # refpkg dir path from commandline
-    path = os.path.join(Configs.refpkg_path, Configs.refpkg_version)
+    path = os.path.join(refpkg_path, refpkg_version)
     input = os.path.join(path, "file-map-for-tipp.txt")
     _LOG.info('Reading refpkg from {}'.format(path))
 

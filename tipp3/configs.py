@@ -179,7 +179,8 @@ def buildConfigs(parser, cmdline_args):
 
     # Must have
     Configs.query_path = os.path.realpath(args.query_path)
-    Configs.refpkg_path = os.path.realpath(args.refpkg_path)
+    if args.refpkg_path:
+        Configs.refpkg_path = os.path.realpath(args.refpkg_path)
 
     Configs.keeptemp = args.keeptemp
 
