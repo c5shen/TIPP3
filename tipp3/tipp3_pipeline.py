@@ -1,15 +1,15 @@
 import time, os, sys, tempfile, re, gzip
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 
 from tipp3.configs import Configs, _root_dir, main_config_path, _read_config_file
 from tipp3.configs import *
 from tipp3 import get_logger, __version__
 from tipp3.refpkg_loader import loadReferencePackage
-from tipp3.read_binning import readBinning
-from tipp3.read_alignment import readAlignment
-from tipp3.read_placement import readPlacement
+from tipp3.query_binning import queryBinning 
+from tipp3.query_alignment import queryAlignment
+from tipp3.query_placement import queryPlacement
 
-from tipp3.helpers.general_tools import SmartHelpFormatter
+#from tipp3.helpers.general_tools import SmartHelpFormatter
 
 _LOG = get_logger(__name__)
 
@@ -30,11 +30,11 @@ def tipp3_pipeline(*args, **kwargs):
     refpkg = loadReferencePackage(Configs.refpkg_path, Configs.refpkg_version)
 
     # (1) read binning against the TIPP3 refpkg using BLAST
-    query_paths, query_alignment_paths = readBinning(refpkg)
+    query_paths, query_alignment_paths = queryBinning(refpkg)
 
     # (2) read alignment to corresponding marker genes
     if Configs.alignment_method != 'blast':
-        query_alignment_paths = readAlignment(refpkg, query_paths)
+        query_alignment_paths = queryAlignment(refpkg, query_paths)
 
     # (3) read placement to corresponding marker gene taxonomic trees
 
@@ -66,12 +66,22 @@ def parseArguments():
 initialize parser to read user inputs
 '''
 def _init_parser():
+    # example usages
+    example_usages = '''Example usages:
+> TIPP3 default behavior
+    %(prog)s -r refpkg_dir/ -i queries.fasta
+> only output read alignment to marker genes (then exit) 
+    %(prog)s -r refpkg_dir/ -i queries.fasta --alignment-only
+'''
+
     parser = ArgumentParser(
             description=(
                 "This program runs TIPP3, a taxonomic identification "
                 "and abundance profiling tool for metagenomic reads. "),
             conflict_handler='resolve',
-            formatter_class=SmartHelpFormatter)
+            epilog=example_usages,
+            formatter_class=RawDescriptionHelpFormatter)
+            #formatter_class=SmartHelpFormatter)
     parser.add_argument('-v', '--version', action='version',
         version="%(prog)s " + __version__)
 
@@ -124,10 +134,11 @@ def _init_parser():
             help='Keep temporary files in the running process.',
             default=False)
     misc_group.add_argument('-y', '--bypass-setup', action='store_const',
-            const=True, default=False,
+            const=True, default=True,
             help=' '.join(['(Optional) Include this argument to bypass',
                 'the initial step when running TIPP3 to set up the',
                 'configuration directory (will use ~/.tipp3).',
-                'Note: you only need to use this option once.']))
+                'Note: By default this option is one.',
+                'You also only need to run this option once.']))
 
     return parser

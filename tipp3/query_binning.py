@@ -20,7 +20,7 @@ complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 Map reads to refpkg using BLASTN, then process the reads to extract
 their assignments and/or alignments to marker genes
 '''
-def readBinning(refpkg):
+def queryBinning(refpkg):
     database_path = refpkg['blast']['database']
     _LOG.info(f"Initializing BlastnJob with BLASTN database: {database_path}")
 

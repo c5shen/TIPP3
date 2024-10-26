@@ -13,8 +13,8 @@ class SmartHelpFormatter(argparse.HelpFormatter):
         if '\n' in text:
             temp = text.split('\n')
             ret = []
-            for _splice in [argparse.HelpFormatter._split_lines(self, x, width)
+            for _splice in [argparse.RawDescriptionHelpFormatter._split_lines(self, x, width)
                     for x in temp]:
                 ret.extend(_splice)
             return ret
-        return argparse.HelpFormatter._split_lines(self, text, width)
+        return argparse.RawDescriptionHelpFormatter._split_lines(self, text, width)
