@@ -8,13 +8,14 @@ from collections import defaultdict
 from tipp3 import get_logger
 from tipp3.configs import Configs
 from tipp3.jobs import BlastnJob
-from tipp3.extract_blast_alignment import extractBlastAlignment
+from tipp3.extract_blast_alignment import reverseComplement, \
+        extractBlastAlignment
 
 _LOG = get_logger(__name__)
 
 # simple reverse complement map 
-global complement_map
-complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+#global complement_map
+#complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
 '''
 Map reads to refpkg using BLASTN, then process the reads to extract
@@ -63,7 +64,7 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
     # read blastn output to memory
     threshold = 50
     try:
-        threshold = int(Configs.BLAST.threshold)
+        threshold = int(getattr(Configs, 'blast').threshold)
     except (AttributeError, ValueError) as e:
         pass
     _LOG.info(f"Filtering BLASTN results: >= {threshold}bp coverage.")
@@ -106,16 +107,16 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
 
 ######################## HELPER FUNCTIONS ###########################
 
-'''
-helper function to obtain the reverse complement of a sequence
-'''
-def reverseComplement(seq):
-    try:
-        char_list = [complement_map[c] for c in seq]
-    except KeyError:
-        char_list = [complement_map[c] if c in complement_map else c for c in seq]
-    new_seq = ''.join(char_list)
-    return new_seq[::-1]
+#'''
+#helper function to obtain the reverse complement of a sequence
+#'''
+#def reverseComplement(seq):
+#    try:
+#        char_list = [complement_map[c] for c in seq]
+#    except KeyError:
+#        char_list = [complement_map[c] if c in complement_map else c for c in seq]
+#    new_seq = ''.join(char_list)
+#    return new_seq[::-1]
 
 '''
 helper function to read marker gene mapping

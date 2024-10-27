@@ -12,6 +12,10 @@ from tipp3 import get_logger
 homepath = os.path.dirname(__file__) + '/home.path'
 _root_dir, main_config_path = init_config_file(homepath)
 
+# set of valid configparse section names
+valid_config_sections = ['witch', 'bscampp', 'pplacer-taxtastic', 
+        'blast', 'refpkg'] 
+
 _LOG = get_logger(__name__)
 
 # default tqdm style for progress bar
@@ -44,6 +48,9 @@ class Configs:
     placement_method = 'pplacer-taxtastic'  # or other method
 
     # binary paths (from config file)
+    # these are just the default ones. User can modularize the method
+    # for each step and add the corresponding executable paths
+    # in main.config (by default at ~/.tipp3/main.config)
     pplacer_path = None
     bscampp_path = None
     blastn_path = None
@@ -57,7 +64,7 @@ class Configs:
     max_concurrent_jobs = None
 
     # miscellaneous
-    bypass_setup = False
+    bypass_setup = True
 
 # check for valid configurations and set them
 def set_valid_configuration(name, conf):
@@ -67,7 +74,7 @@ def set_valid_configuration(name, conf):
         return
 
     # backbone alignment settings
-    if name == 'Basic':
+    if name == 'basic':
         for k in conf.__dict__.keys():
             attr = getattr(conf, k)
             if not attr:
@@ -77,17 +84,14 @@ def set_valid_configuration(name, conf):
                 assert str(attr).lower() in ['witch', 'blast', 'hmm'], \
                     'Alignment method {} not implemented'.format(attr)
             elif k == 'placement_method':
-                assert int(attr).lower() in ['pplacer', 'bscampp'], \
-                    'Placement method {} not implemented'.format(attr)
+                pass
+                #assert int(attr).lower() in ['pplacer', 'bscampp'], \
+                #    'Placement method {} not implemented'.format(attr)
             #elif k == 'path':
             #    assert os.path.exists(os.path.realpath(str(attr))), \
             #        '{} does not exist'.format(os.path.realpath(str(attr)))
             setattr(Configs, k, attr)
-    elif name == 'WITCH':
-        setattr(Configs, name, conf)
-    elif name == 'BLAST':
-        setattr(Configs, name, conf)
-    elif name == 'Refpkg':
+    elif name in valid_config_sections:
         setattr(Configs, name, conf)
     else:
         # not reading any invalid sections
@@ -104,7 +108,7 @@ def valid_attribute(k, v):
 
 # print a list of all configurations
 def getConfigs():
-    print('\n********* Configurations **********')
+    print('\n********** Configurations **********')
     print('\thome.path: {}'.format(homepath))
     print('\tmain.config: {}\n'.format(main_config_path))
     for k, v in Configs.__dict__.items():

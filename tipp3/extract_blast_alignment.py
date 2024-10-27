@@ -10,17 +10,17 @@ from tipp3.helpers.alignment_tools import ExtendedAlignment
 
 _LOG = get_logger(__name__)
 
+global complement_map
+complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+
 '''
 Reverse-complement given sequences. Retain characters that are not {A, T, C, G}
 '''
 def reverseComplement(seq):
-    _map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
     try:
-        char_list = [_map[c] for c in seq]
+        char_list = [complement_map[c] for c in seq]
     except KeyError:
-        char_list = [_map[c] if c in _map else c for c in seq]
-        #print(seq)
-
+        char_list = [complement_map[c] if c in complement_map else c for c in seq]
     new_seq = ''.join(char_list)
     return new_seq[::-1]
 
@@ -287,7 +287,7 @@ def extractBlastAlignment(refpkg, workdir, query_blast_paths):
         outdir = os.path.join(alignment_outdir, marker)
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        outpath = os.path.join(outdir, 'est.aln.fasta.masked')
+        outpath = os.path.join(outdir, 'est.aln.masked.fasta')
         ret[marker] = outpath
         #outqueriespath = os.path.join(outdir, 'est.aln.masked.queries.fasta')
         #outbackbonepath = os.path.join(outdir, 'est.aln.masked.backbone.fasta')

@@ -24,7 +24,7 @@ def loadReferencePackage(refpkg_path, refpkg_version):
     # load exclusion list, if any
     exclusion = set() 
     try:
-        raw = Configs.Refpkg.exclusion
+        raw = getattr(Configs, 'refpkg').exclusion
         exclusion = set(raw.strip().split(','))
     except AttributeError:
         pass
@@ -45,6 +45,12 @@ def loadReferencePackage(refpkg_path, refpkg_version):
 
             if (key1 != "blast") and (key1 != "taxonomy"):
                 refpkg["genes"].append(key1)
+    
+    # add path variable to each marker gene refpkg
+    # to use with pplacer-taxtastic
+    for marker in refpkg["genes"]:
+        marker_refpkg_path = os.path.join(path, f"{marker}.refpkg")
+        refpkg[marker]['path'] = marker_refpkg_path
 
     # excluding marker genes if specified
     _LOG.info('Excluding markers (if exist): {}'.format(exclusion))

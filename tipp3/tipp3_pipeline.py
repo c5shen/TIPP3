@@ -37,7 +37,7 @@ def tipp3_pipeline(*args, **kwargs):
         query_alignment_paths = queryAlignment(refpkg, query_paths)
 
     # (3) read placement to corresponding marker gene taxonomic trees
-
+    query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
 
     # (4) collect results and abundance profile
 
@@ -111,10 +111,10 @@ def _init_parser():
             'to marker genes. [default: witch]']),
         required=False)
     basic_group.add_argument('--placement-method',
-        type=str, choices=['pplacer', 'bscampp'],
+        type=str, choices=['pplacer-taxtastic', 'bscampp'],
         help=' '.join(['Placement method to use for placing aligned reads',
-            'to marker gene taxonomic trees. [default: pplacer']),
-        default='pplacer', required=False)
+            'to marker gene taxonomic trees. [default: pplacer-taxtastic']),
+        default='pplacer-taxtastic', required=False)
     basic_group.add_argument('-c', '--config-file',
         type=str, help='Path to a user-defined config file. [default: None]',
         required=False, default=None)

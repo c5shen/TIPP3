@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 '''
 This version uses a new technique for voting and ensuring trees contain all of the query sequences votes!
 '''

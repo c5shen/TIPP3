@@ -6,6 +6,7 @@ are provided correctly.
 '''
 
 import os, shutil, subprocess, stat, re, traceback
+import threading
 from subprocess import Popen
 from abc import abstractmethod
 
@@ -13,6 +14,17 @@ from tipp3 import get_logger
 from tipp3.configs import Configs
 
 _LOG = get_logger(__name__)
+
+'''
+function to streamline the logging of stdout and stderr output from a job run
+to a target logging file
+'''
+def stream_to_file(stream, fptr, logging):
+    if logging:
+        for line in iter(stream.readline, ''):
+            fptr.write(line)
+            fptr.flush()
+    stream.close()
 
 '''
 Template Class Job for running external jobs
@@ -33,9 +45,11 @@ class Job(object):
 
     # run the job with given invocation defined in a child class
     # raise errors when encountered
-    def run(self):
+    def run(self, logging=False):
         try:
             cmd, outpath = self.get_invocation()
+            _LOG.info(f"Running job_type: {self.job_type}, output: {outpath}")
+
             binpath = cmd[0]
             assert os.path.exists(binpath), \
                     ("executable for %s does not exist: %s" % 
@@ -56,15 +70,39 @@ class Job(object):
             stdout, stderr = p.communicate()
             self.returncode = p.returncode
 
+            #p = Popen(cmd, bufsize=1, text=True,
+            #        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            #_outdir = os.path.dirname(os.path.realpath(outpath))
+            #if logging:
+            #    logfile = os.path.join(_outdir, 'runtime.txt')
+            #    fptr = open(logfile, 'w', buffering=1)
+
+            #    # initialize writing to logging file (if logging)
+            #    stdout_thread = threading.Thread(target=stream_to_file,
+            #            args=(p.stdout, fptr, logging))
+            #    stderr_thread = threading.Thread(target=stream_to_file,
+            #            args=(p.stderr, fptr, logging))
+            #    stdout_thread.start()
+            #    stderr_thread.start()
+
+            #    # join threads
+            #    stdout_thread.join()
+            #    stderr_thread.join()
+
+            # finish up the process run
+            #stdout, stderr = p.communicate()
+            #self.returncode = p.returncode
+
             if self.returncode == 0:
-                _LOG.info(f"{self.job_type} completed.")
+                _LOG.info(f"{self.job_type} completed, output: {outpath}")
                 return outpath
             else:
                 error_msg = ' '.join([f"Error occurred running {self.job_type}.",
                     f"Return code: {self.returncode}"])
                 print(error_msg)
-                _LOG.error(error_msg + '\n' + stdout.decode('utf-8') + 
-                        '\n' + stderr.decode('utf-8'))
+                _LOG.error(error_msg + '\nSTDOUT: ' + stdout.decode('utf-8') +
+                        '\nSTDERR: ' + stderr.decode('utf-8'))
+                #_LOG.error(error_msg + '\n' + stdout)
                 exit(1)
         except Exception:
             traceback.print_exc()
@@ -109,79 +147,58 @@ class BlastnJob(Job):
         return cmd, self.outpath
 
 '''
-A BSCAMPP job that will replace the original PplacerJob
+A BSCAMPP job that will run BSCAMPP for placing aligned query reads 
 '''
-#class BscamppJob(ExternalSeppJob):
-#    def __init__(self, **kwargs):
-#        self.job_type = 'bscampp'
-#        ExternalSeppJob.__init__(self, self.job_type, **kwargs)
-#        
-#        # initialize parameters
-#        self.backbone_alignment_file = None
-#        self.tree_file = None
-#        self.model_file = None
-#        self.extended_alignment_file = None
-#        self.full_extended_alignment_file = None
-#        self.out_file = None
-#
-#    def setup(self, backbone_alignment_file, tree_file, model_file,
-#            extended_alignment_file, full_extended_alignment_file,
-#            out_file, **kwargs):
-#        self.backbone_alignment_file = backbone_alignment_file
-#        self.tree_file = tree_file
-#        self.model_file = model_file
-#        self.extended_alignment_file = extended_alignment_file
-#        self.full_extended_alignment_file = full_extended_alignment_file
-#        self.out_file = out_file
-#
-#    def partial_setup_for_subproblem(self, subproblem, model_file, i, **kwargs):
-#        assert isinstance(subproblem, sepp.problem.SeppProblem)
-#        self.backbone_alignment_file = sepp.filemgr.tempfile_for_subproblem(
-#                'bscampp.backbone.', subproblem, '.fasta')
-#        self.tree_file = sepp.filemgr.tempfile_for_subproblem(
-#                'bscampp.tree.', subproblem, '.tre')
-#        self.extended_alignment_file = \
-#                sepp.filemgr.tempfile_for_subproblem(
-#                        'bscampp.extended.{}.'.format(i),
-#                        subproblem, '.fasta')
-#        self.full_extended_alignment_file = \
-#                sepp.filemgr.tempfile_for_subproblem(
-#                        'bscampp.full.extended.{}.'.format(i),
-#                        subproblem, '.fasta')
-#        self.out_file = os.path.join(
-#                sepp.filemgr.tempdir_for_subproblem(subproblem),
-#                self.extended_alignment_file.replace('fasta', 'jplace'))
-#        assert isinstance(subproblem.subtree, PhylogeneticTree)
-#        subproblem.subtree.write_newick_to_path(self.tree_file,)
-#
-#        self.model_file = model_file.name \
-#                if hasattr(model_file, 'name') else model_file
-#        self.tmpfilenbr = i
-#        self._kwargs = kwargs
-#    
-#    def get_invocation(self):
-#        invoc = ['python3', self.path, '-d', os.path.dirname(self.out_file)]
-#        if 'user_options' in self._kwargs:
-#            invoc.extend(self._kwargs['user_options'].split())
-#
-#        invoc.extend(['-o', '.'.join(self.out_file.split('/')[-1].split('.')[:-1]),
-#                      '-t', self.tree_file,
-#                      '-i', self.model_file,
-#                      '-a', self.full_extended_alignment_file,
-#                      '--tmpfilenbr', str(self.tmpfilenbr),
-#                      '-b', '100', '--threads', '1'])
-#        return invoc
-#    
-#    def characterize_input(self):
-#        return ('backbone_alignment_file:%s, tree_file:%s, model_file:%s, '
-#                'full_extended_alignment_file:%s, output:%s') % (
-#                    self.backbone_alignment_file, self.tree_file,
-#                    self.model_file, self.full_extended_alignment_file,
-#                    self.out_file)
-#
-#    def read_results(self):
-#        if self.fake_run:
-#            return None
-#        assert os.path.exists(self.out_file)
-#        assert os.stat(self.out_file)[stat.ST_SIZE] != 0
-#        return self.out_file
+class BscamppJob(Job):
+    def __init__(self, **kwargs):
+        Job.__init__(self)
+        self.job_type = 'bscampp'
+        
+        # initialize parameters
+        self.path = ''
+        self.query_alignment_path = ''
+        self.backbone_tree_path = ''
+        self.tree_model_path = ''
+        self.outdir = ''
+        self.num_cpus = 1
+        self.subtreesize = 2000
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def get_invocation(self):
+        self.outpath = os.path.join(self.outdir, 'placement.jplace')
+        cmd = [self.path, '-b', str(self.subtreesize),
+                '-i', self.tree_model_path,
+                '-t', self.backbone_tree_path,
+                '-d', self.outdir, '-o', 'placement',
+                '-a', self.query_alignment_path,
+                '--threads', str(self.num_cpus)]
+        return cmd, self.outpath 
+
+'''
+A pplacer-taxtastic job that runs pplacer with the taxtastic refpkg
+'''
+class PplacerTaxtasticJob(Job):
+    def __init__(self, **kwargs):
+        Job.__init__(self)
+        self.job_type = 'pplacer-taxtastic'
+
+        self.path = ''
+        self.query_alignment_path = ''
+        self.refpkg_path = ''
+        self.outdir = ''
+        self.num_cpus = 1
+        self.model_type = 'GTR'
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def get_invocation(self):
+        self.outpath = os.path.join(self.outdir, 'placement.jplace')
+        cmd = [self.path, '-m', self.model_type,
+                '-c', self.refpkg_path,
+                '-o', self.outpath,
+                '-j', str(self.num_cpus),
+                self.query_alignment_path]
+        return cmd, self.outpath
