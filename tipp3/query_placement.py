@@ -38,6 +38,13 @@ def queryPlacement(refpkg, query_alignment_paths):
         if not os.path.isdir(placement_dir):
             os.makedirs(placement_dir)
 
+        # detect results from previous run, if exists return
+        detect_path = os.path.join(placement_dir, 'placement.jplace')
+        if os.path.exists(detect_path):
+            _LOG.info(f"Found existing placement: {detect_path}")
+            query_placement_paths[marker] = detect_path
+            continue
+
         # identify job type - different placement methods
         # pplacer-taxtastic
         if Configs.placement_method == 'pplacer-taxtastic':

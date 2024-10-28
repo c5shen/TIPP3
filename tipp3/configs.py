@@ -55,6 +55,7 @@ class Configs:
     bscampp_path = None
     blastn_path = None
     witch_path = None
+    tippjsonmerger_path = None
 
     # reference package dir path
     refpkg_version = 'markers-v4'
@@ -122,8 +123,10 @@ override the config file.
 
 Original functionality comes from SEPP -> sepp/config.py
 '''
-def _read_config_file(filename, cparser, opts, expand=None):
-    _LOG.info('Reading config from {}'.format(filename))
+def _read_config_file(filename, cparser, opts,
+        child_process=False, expand=None):
+    if not child_process:
+        _LOG.info('Reading config from {}'.format(filename))
     config_defaults = []
 
     with open(filename, 'r') as cfile:
@@ -150,7 +153,7 @@ def _read_config_file(filename, cparser, opts, expand=None):
 '''
 Build configurations
 '''
-def buildConfigs(parser, cmdline_args):
+def buildConfigs(parser, cmdline_args, child_process=False):
     # config parser, which first reads in main.config and later overrides
     # with user.config (if specified)
     cparser = configparser.ConfigParser()
@@ -166,7 +169,8 @@ def buildConfigs(parser, cmdline_args):
 
     # load default_args from main.config
     default_args = Namespace()
-    cmdline_default = _read_config_file(main_config_path, cparser, default_args)
+    cmdline_default = _read_config_file(main_config_path,
+            cparser, default_args, child_process=child_process)
     
     # load cmdline args first, then search for user.config if specified
     args = parser.parse_args(cmdline_args)
@@ -174,7 +178,8 @@ def buildConfigs(parser, cmdline_args):
     if args.config_file != None:
         # override default_args
         Configs.config_file = args.config_file
-        cmdline_user = _read_config_file(Configs.config_file, cparser, default_args)
+        cmdline_user = _read_config_file(Configs.config_file,
+                cparser, default_args, child_process=child_process)
 
     # finally, re-parse cmdline args in the order:
     #   [cmdline_default, cmd_user, cmdline_args] 

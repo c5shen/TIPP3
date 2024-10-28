@@ -92,11 +92,13 @@ def init_config_file(homepath, prioritize_user_software=True):
     tools_dir = os.path.join(os.path.dirname(__file__), 'tools')
     set_sections = ['basic']
 
-    # default path to pplacer and BSCAMPP
+    # default path to pplacer, BSCAMPP, and TIPPJsonMerger
     cparser.set('basic', 'pplacer_path',
             os.path.join(tools_dir, 'pplacer', 'pplacer'))
     cparser.set('basic', 'bscampp_path',
             os.path.join(tools_dir, 'bscampp', 'EPA-ng-BSCAMPP.py'))
+    cparser.set('basic', 'tippjsonmerger_path',
+            os.path.join(tools_dir, 'merge', 'tippJsonMerger.jar'))
 
     if 'macos' not in platform_name.lower():
         print('System is {}, using default config as main.config...'.format(

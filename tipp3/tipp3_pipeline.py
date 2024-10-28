@@ -1,15 +1,18 @@
 import time, os, sys, tempfile, re, gzip
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 
+from tipp3 import get_logger, __version__
 from tipp3.configs import Configs, _root_dir, main_config_path, _read_config_file
 from tipp3.configs import *
-from tipp3 import get_logger, __version__
 from tipp3.refpkg_loader import loadReferencePackage
 from tipp3.query_binning import queryBinning 
 from tipp3.query_alignment import queryAlignment
 from tipp3.query_placement import queryPlacement
+from tipp3.abundance import writeAbundance 
+from tipp3.helpers.general_tools import tqdm_styles 
 
-#from tipp3.helpers.general_tools import SmartHelpFormatter
+from multiprocessing import Lock, Manager
+from concurrent.futures import ProcessPoolExecutor
 
 _LOG = get_logger(__name__)
 
@@ -22,9 +25,16 @@ levels = ["species", "genus", "family", "order",
 # Main pipeline of TIPP3
 def tipp3_pipeline(*args, **kwargs):
     s1 = time.time()
+    m = Manager()
+    lock = m.Lock()
 
     # (pre) parse arguments and build configurations
-    parseArguments()
+    parser, cmdline_args = parseArguments()
+
+    # initialize ProcessPoolExecutor
+    _LOG.warning('Initializing ProcessorPoolExecutor instance...')
+    pool = ProcessPoolExecutor(Configs.num_cpus,
+            initializer=initiate_pool, initargs=(parser, cmdline_args,))
 
     # (0) load refpkg
     refpkg = loadReferencePackage(Configs.refpkg_path, Configs.refpkg_version)
@@ -40,10 +50,22 @@ def tipp3_pipeline(*args, **kwargs):
     query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
 
     # (4) collect results and abundance profile
+    writeAbundance(refpkg, query_placement_paths, pool, lock)
+
+    # close ProcessPoolExecutor
+    _LOG.warning('Closing ProcessPoolExecutor instance...')
+    pool.shutdown()
+    _LOG.warning('ProcessPoolExecutor instance closed.')
 
     s2 = time.time()
     _LOG.info('TIPP3 completed in {} seconds...'.format(s2 - s1))
     print('TIPP3 completed in {} seconds...'.format(s2 - s1))
+
+'''
+Init function for a queue and get configurations for each worker
+'''
+def initiate_pool(parser, cmdline_args):
+    buildConfigs(parser, cmdline_args, child_process=True)
 
 '''
 parse argument and populate Configs
@@ -61,6 +83,7 @@ def parseArguments():
     #    _LOG.info('Main configuration loaded from {}'.format(
     #        main_config_path))
     getConfigs()
+    return parser, cmdline_args
 
 '''
 initialize parser to read user inputs

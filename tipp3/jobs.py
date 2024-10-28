@@ -45,12 +45,16 @@ class Job(object):
 
     # run the job with given invocation defined in a child class
     # raise errors when encountered
-    def run(self, logging=False):
+    def run(self, stdin="", lock=None, logging=False):
         try:
             cmd, outpath = self.get_invocation()
             _LOG.info(f"Running job_type: {self.job_type}, output: {outpath}")
 
             binpath = cmd[0]
+            # special case for "java -jar ..."
+            if binpath == 'java':
+                binpath = cmd[2]
+
             assert os.path.exists(binpath), \
                     ("executable for %s does not exist: %s" % 
                      (self.job_type, binpath))
@@ -65,9 +69,10 @@ class Job(object):
         
             # run the job using Popen with given command
             # read in stdout and stderr
-            p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = Popen(cmd, text=True, stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             self.pid = p.pid
-            stdout, stderr = p.communicate()
+            stdout, stderr = p.communicate(input=stdin)
             self.returncode = p.returncode
 
             #p = Popen(cmd, bufsize=1, text=True,
@@ -94,14 +99,29 @@ class Job(object):
             #self.returncode = p.returncode
 
             if self.returncode == 0:
-                _LOG.info(f"{self.job_type} completed, output: {outpath}")
+                if lock:
+                    try:
+                        lock.acquire()
+                        _LOG.info(f"{self.job_type} completed, output: {outpath}")
+                    finally:
+                        lock.release()
+                else:
+                    _LOG.info(f"{self.job_type} completed, output: {outpath}")
                 return outpath
             else:
                 error_msg = ' '.join([f"Error occurred running {self.job_type}.",
                     f"Return code: {self.returncode}"])
                 print(error_msg)
-                _LOG.error(error_msg + '\nSTDOUT: ' + stdout.decode('utf-8') +
-                        '\nSTDERR: ' + stderr.decode('utf-8'))
+                if lock:
+                    try:
+                        lock.acquire()
+                        _LOG.error(error_msg + '\nSTDOUT: ' + stdout.decode('utf-8') +
+                                '\nSTDERR: ' + stderr.decode('utf-8'))
+                    finally:
+                        lock.release()
+                else:
+                    _LOG.error(error_msg + '\nSTDOUT: ' + stdout.decode('utf-8') +
+                            '\nSTDERR: ' + stderr.decode('utf-8'))
                 #_LOG.error(error_msg + '\n' + stdout)
                 exit(1)
         except Exception:
@@ -202,3 +222,29 @@ class PplacerTaxtasticJob(Job):
                 '-j', str(self.num_cpus),
                 self.query_alignment_path]
         return cmd, self.outpath
+
+'''
+A JsonMerger job for TIPP to read taxonomic information from a .jplace file
+with the corresponding taxonomic tree
+'''
+class TIPPJsonMergerJob(Job):
+    def __init__(self, **kwargs):
+        Job.__init__(self)
+        self.job_type = 'tippjsonmerger'
+
+        self.path = ''
+        self.taxonomy_path = ''
+        self.mapping_path = ''
+        self.classification_path = ''
+        self.outdir = ''
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def get_invocation(self):
+        self.outpath = os.path.join(self.outdir, 'tippjsonmerger.jplace') 
+        cmd = ['java', '-jar', self.path,
+                '-', '-', self.outpath,
+                '-t', self.taxonomy_path, '-m', self.mapping_path,
+                '-p', '0.0', '-C', '0.0', '-c', self.classification_path]
+        return cmd, self.classification_path

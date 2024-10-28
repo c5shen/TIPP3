@@ -1,6 +1,14 @@
 import psutil, os
 import argparse
 
+tqdm_styles = {
+        'desc': '\tRunning...', 'ascii': False,
+        'ncols': 80,
+        #'disable': True,
+        #'colour': 'green',
+        'mininterval': 0.5
+        }
+
 # return memory usage of python process by MB
 def memoryUsage():
     process = psutil.Process(os.getpid())

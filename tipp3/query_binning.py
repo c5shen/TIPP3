@@ -2,7 +2,7 @@
 Read binning using BLASTN
 '''
 
-import os, time
+import os, time, shutil
 from collections import defaultdict
 
 from tipp3 import get_logger
@@ -29,20 +29,36 @@ def queryBinning(refpkg):
     if not os.path.isdir(blastn_outdir):
         os.makedirs(blastn_outdir)
 
-    # run BLASTN
-    job = BlastnJob(path=Configs.blastn_path,
-            query_path=Configs.query_path,
-            database_path=database_path,
-            outdir=blastn_outdir,
-            num_threads=Configs.num_cpus)
-    blastn_outpath = job.run()
+    # detect previous run, if output exists return
+    token_path = os.path.join(blastn_outdir, '_working.token')
+    detect_path = os.path.join(blastn_outdir, 'blast.alignment.out')
+    if (not os.path.exists(token_path)) and os.path.exists(detect_path):
+        _LOG.info(f"Found existing BLAST output: {detect_path}")
+        blastn_outpath = detect_path
+    else:
+        with open(token_path, 'a') as f:
+            f.write('placeholder')
+
+        # run BLASTN
+        job = BlastnJob(path=Configs.blastn_path,
+                query_path=Configs.query_path,
+                database_path=database_path,
+                outdir=blastn_outdir,
+                num_threads=Configs.num_cpus)
+        blastn_outpath = job.run()
+
+        # remove token to indicate job finished
+        try:
+            os.remove(token_path)
+        except FileNotFoundError:
+            pass
 
     # process BLASTN output
     query_blast_paths, query_aln = processBlastnOutput(refpkg, blastn_outpath,
             blastn_outdir)
 
     # write query reads to local for alignments, truncate if neccessary
-    query_outdir = os.path.join(Configs.outdir, 'queries')
+    query_outdir = os.path.join(Configs.outdir, 'query')
     query_paths = splitQueries(refpkg, query_aln, query_outdir)
 
     # if Configs.alignment_method is BLAST, extract alignment at this step
