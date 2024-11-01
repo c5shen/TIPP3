@@ -191,6 +191,7 @@ def buildConfigs(parser, cmdline_args, child_process=False):
     if args.refpkg_path:
         Configs.refpkg_path = os.path.realpath(args.refpkg_path)
 
+    Configs.alignment_only = args.alignment_only
     Configs.keeptemp = args.keeptemp
 
     # alignment_method and placement_method, and refpkg version

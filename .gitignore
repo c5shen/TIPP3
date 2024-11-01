@@ -7,3 +7,6 @@ home.path
 main.config
 *.swp
 examples/*.zip
+examples/feeder.py
+examples/job.info
+examples/*.out
