@@ -8,7 +8,7 @@ from tipp3.refpkg_loader import loadReferencePackage
 from tipp3.query_binning import queryBinning 
 from tipp3.query_alignment import queryAlignment
 from tipp3.query_placement import queryPlacement
-from tipp3.abundance import writeAbundance 
+from tipp3.query_abundance import queryAbundance 
 from tipp3.helpers.general_tools import tqdm_styles 
 
 from multiprocessing import Lock, Manager
@@ -46,20 +46,36 @@ def tipp3_pipeline(*args, **kwargs):
     if Configs.alignment_method != 'blast':
         query_alignment_paths = queryAlignment(refpkg, query_paths)
 
+    # early stop --> alignment-only 
+    if Configs.alignment_only:
+        _LOG.warning("User specifies to output query alignment to marker "
+                "genes only. Stopping TIPP3 now.")
+        _LOG.warning("You can find the alignment files at: "
+                f"{os.path.join(Configs.outdir, 'query_alignments')}")
+        tipp3_stop(s1)
+
     # (3) read placement to corresponding marker gene taxonomic trees
     query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
 
     # (4) collect results and abundance profile
-    writeAbundance(refpkg, query_placement_paths, pool, lock)
+    queryAbundance(refpkg, query_placement_paths, pool, lock)
 
     # close ProcessPoolExecutor
     _LOG.warning('Closing ProcessPoolExecutor instance...')
     pool.shutdown()
     _LOG.warning('ProcessPoolExecutor instance closed.')
 
+    # cleaning up temporary files
+    temp_dirs = ['blast_output', 'query', 'query_alignments',
+            'query_placements']
+
+    # stop TIPP3
+    tipp3_stop(s1)
+
+def tipp3_stop(start_time):
     s2 = time.time()
-    _LOG.info('TIPP3 completed in {} seconds...'.format(s2 - s1))
-    print('TIPP3 completed in {} seconds...'.format(s2 - s1))
+    _LOG.info('TIPP3 completed in {} seconds...'.format(s2 - start_time))
+    print('TIPP3 completed in {} seconds...'.format(s2 - start_time))
 
 '''
 Init function for a queue and get configurations for each worker
@@ -153,6 +169,9 @@ def _init_parser():
             "Miscellaneous options".upper(),
             ("Optional parameters for TIPP3 setup/config etc."))
     parser.groups['misc_group'] = misc_group
+    misc_group.add_argument('--alignment-only', action='store_const',
+            const=True, default=False,
+            help='Only obtain query alignments to marker genes and stop TIPP3.')
     misc_group.add_argument('--keeptemp', action='store_const', const=True,
             help='Keep temporary files in the running process.',
             default=False)
@@ -161,7 +180,6 @@ def _init_parser():
             help=' '.join(['(Optional) Include this argument to bypass',
                 'the initial step when running TIPP3 to set up the',
                 'configuration directory (will use ~/.tipp3).',
-                'Note: By default this option is one.',
-                'You also only need to run this option once.']))
+                'Note: By default this option is enabled.']))
 
     return parser

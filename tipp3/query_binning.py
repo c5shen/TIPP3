@@ -85,39 +85,49 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
         pass
     _LOG.info(f"Filtering BLASTN results: >= {threshold}bp coverage.")
 
-    query_aln = readBlastnOutput(blastn_outpath, gene_mapping, threshold)
-    query_blast_paths = {}
-    
-    # read in marker genes to use
-    markers = refpkg['genes']
+    detect_path = blastn_outpath + '.finished'
+    if not os.path.exists(detect_path):
+        query_aln = readBlastnOutput(blastn_outpath, gene_mapping, threshold)
+        query_blast_paths = {}
+        
+        # read in marker genes to use
+        markers = refpkg['genes']
 
-    # write to blastn_outdir as checkpoints
-    write_order = ['source_taxon', 'qstart', 'qend', 'qaln', 'sstart', 'send', 'saln']
-    marker_fptr = {}
-    for marker in markers:
-        _path = '{}/queries-{}.out'.format(blastn_outdir, marker) 
-        marker_fptr[marker] = {}
-        marker_fptr[marker]['path'] = _path
-        marker_fptr[marker]['fptr'] = open(_path, 'w')
-        marker_fptr[marker]['count'] = 0
-    
-    for k, v in query_aln.items():
-        marker = v['source_taxon'][1]
-        # only deal with 
-        if marker in marker_fptr:
-            towrite = [v[_x] for _x in write_order]
-            marker_fptr[marker]['fptr'].write('>{}\n{}\n'.format(k, towrite))
-            marker_fptr[marker]['count'] += 1
+        # write to blastn_outdir as checkpoints
+        write_order = ['source_taxon', 'qstart', 'qend', 'qaln', 'sstart', 'send', 'saln']
+        marker_fptr = {}
+        for marker in markers:
+            _path = '{}/queries-{}.out'.format(blastn_outdir, marker) 
+            marker_fptr[marker] = {}
+            marker_fptr[marker]['path'] = _path
+            marker_fptr[marker]['fptr'] = open(_path, 'w')
+            marker_fptr[marker]['count'] = 0
+        
+        for k, v in query_aln.items():
+            marker = v['source_taxon'][1]
+            # only deal with 
+            if marker in marker_fptr:
+                towrite = [v[_x] for _x in write_order]
+                marker_fptr[marker]['fptr'].write('>{}\n{}\n'.format(k, towrite))
+                marker_fptr[marker]['count'] += 1
 
-    for marker in markers:
-        marker_fptr[marker]['fptr'].close()
-        _path = marker_fptr[marker]['path']
-        # remove empty marker gene outputs
-        if marker_fptr[marker]['count'] == 0:
-            _LOG.debug(f'{marker} has no assigned queries, removing {_path}')
-            os.system('rm {}'.format(_path))
-        else:
-            query_blast_paths[marker] = marker_fptr[marker]['path']
+        for marker in markers:
+            marker_fptr[marker]['fptr'].close()
+            _path = marker_fptr[marker]['path']
+            # remove empty marker gene outputs
+            if marker_fptr[marker]['count'] == 0:
+                _LOG.debug(f'{marker} has no assigned queries, removing {_path}')
+                os.system('rm {}'.format(_path))
+            else:
+                query_blast_paths[marker] = marker_fptr[marker]['path']
+
+        # write to local to indicate that splitting is done
+        with open(detect_path, 'w') as f:
+            f.write('placeholder')
+    else:
+        # read from existing split queries
+        _LOG.info(f"Found existing filtered BLASTN results")
+        query_blast_paths, query_aln = readSplitQueries(blastn_outdir)
     return query_blast_paths, query_aln
 
 
@@ -144,6 +154,46 @@ def readGeneMapping(map_path, delimiter='\t'):
             parts = line.strip().split(delimiter)
             mapping[parts[0]] = parts
     return mapping
+
+'''
+helper function to read in genes files that are already split
+NOTE: only when all query reads are split this function will be invoked
+'''
+def readSplitQueries(blastn_outdir):
+    # removing irrelevant files
+    existing_files = os.popen(f'ls {blastn_outdir}').read().strip().split('\n')
+    existing_files = [x for x in existing_files if x.startswith('queries')]
+    _LOG.info(
+        f"Existing queries are assigned to ({len(existing_files)}) marker genes.")
+
+    query_blast_paths = {}
+    for f in existing_files:
+        marker = f.split('-')[1].split('.')[0]
+        query_blast_paths[marker] = os.path.join(blastn_outdir, f)
+
+    query_aln = defaultdict(dict)
+    for marker, infile in query_blast_paths.items():
+        cur_taxon = ""; cur_aln = None
+        f = open(infile, 'r')
+        for line in f:
+            if line.startswith('>'):
+                if cur_taxon != "":
+                    query_aln[cur_taxon] = cur_aln
+                    cur_aln = None
+                else:
+                    cur_taxon = line.strip()[1:]
+            else:
+                parts = eval(line.strip())
+                cur_aln = {'source_taxon': parts[0],
+                        'qcov': parts[2] - parts[1],
+                        'qstart': parts[1], 'qend': parts[2],
+                        'qaln': parts[3],
+                        'sstart': parts[4], 'send': parts[5],
+                        'saln': parts[6]}
+        if cur_taxon != "":
+            query_aln[cur_taxon] = cur_aln
+        f.close()
+    return query_blast_paths, query_aln
 
 '''
 helper function to read in blastn output
@@ -240,13 +290,23 @@ helper function to slit queries to marker genes and write to local for
 alignment later
 '''
 def splitQueries(refpkg, query_aln, query_outdir):
+    _LOG.info("Writing assigned query reads to local.")
     markers = refpkg['genes']
 
     if not os.path.isdir(query_outdir):
         os.makedirs(query_outdir)
 
-    # initialize assigned queries for each marker gene
     ret = {}
+    detect_path = os.path.join(query_outdir, 'blast-binned.out')
+    if os.path.exists(detect_path):
+        _LOG.info("Found assigned query reads, using existing ones...")
+        for marker in markers:
+            _outpath = os.path.join(query_outdir, '{}.queries.fasta'.format(marker))
+            if os.path.exists(_outpath):
+                ret[marker] = _outpath
+        return ret
+
+    # initialize assigned queries for each marker gene
     marker_fptr = {}
     for marker in markers:
         _outpath = os.path.join(query_outdir, '{}.queries.fasta'.format(marker))
@@ -254,8 +314,7 @@ def splitQueries(refpkg, query_aln, query_outdir):
         marker_fptr[marker] = open(_outpath, 'w')
 
     # write blastn alignment output info
-    info_path = os.path.join(query_outdir, 'blast-binned.out')
-    info_f = open(info_path, 'w', buffering=1)
+    info_f = open(detect_path, 'w')
     info_f.write('qseqid,sseqid,marker,trim_qstart,trim_qend,qlen\n')
 
     # go over each entry and write query to corresponding marker gene output

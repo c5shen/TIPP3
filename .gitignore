@@ -5,3 +5,5 @@ __pycache__
 *.pyc
 home.path
 main.config
+*.swp
+examples/*.zip

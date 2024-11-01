@@ -2,7 +2,9 @@
 
 # example to run TIPP3 with a given refpkg and a set of query reads
 bin=../tipp3.py
-inpath=data/RplO_COG0200.queries.fasta
+#inpath=data/RplO_COG0200.queries.fasta
+inpath=data/small_set.queries.fasta
+#inpath=data/testing_known_2_dataset21.queries.fasta
 refpkg=/home/chengze5/tallis/tipp3/tipp3-refpkg
 outdir=./tipp3_output
 t=16

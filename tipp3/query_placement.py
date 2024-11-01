@@ -15,9 +15,9 @@ Place query reads to their assigned marker gene taxonomic trees using the
 user-defined phylogenetic placement method
 '''
 def queryPlacement(refpkg, query_alignment_paths):
-    query_placement_paths = {}
+    _LOG.info(f"Started placement method: {Configs.placement_method}")
 
-    _LOG.info(f"Placement method: {Configs.placement_method}")
+    query_placement_paths = {}
     additional_kwargs = {}
     try:
         #additional_kwargs = Configs.BSCAMPP.__dict__
@@ -32,7 +32,7 @@ def queryPlacement(refpkg, query_alignment_paths):
 
     for marker, query_alignment_path in query_alignment_paths.items():
         _LOG.info("Placing aligned query reads for " \
-                f"{marker} from {query_alignment_path}")
+                f"{marker}")# from {query_alignment_path}")
         placement_dir = os.path.join(Configs.outdir, 'query_placements',
                 marker)
         if not os.path.isdir(placement_dir):
@@ -40,7 +40,7 @@ def queryPlacement(refpkg, query_alignment_paths):
 
         # detect results from previous run, if exists return
         detect_path = os.path.join(placement_dir, 'placement.jplace')
-        if os.path.exists(detect_path):
+        if os.path.exists(detect_path) and os.stat(detect_path).st_size > 0:
             _LOG.info(f"Found existing placement: {detect_path}")
             query_placement_paths[marker] = detect_path
             continue

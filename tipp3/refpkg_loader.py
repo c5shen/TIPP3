@@ -35,6 +35,11 @@ def loadReferencePackage(refpkg_path, refpkg_version):
             [key, val] = line.split('=')
 
             [key1, key2] = key.strip().split(':')
+
+            # hotfix before pushing a new version of TIPP3 refpkg
+            # --> change all "taxonomy.table" to "all_taxon.taxonomy"
+            if val == 'taxonomy.table':
+                val = 'all_taxon.taxonomy'
             val = os.path.join(path, val.strip())
 
             try:

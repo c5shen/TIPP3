@@ -274,6 +274,8 @@ def extractionRunner(marker, inpath, bbpath, outpath):
 entry point for extracting BLAST alignment
 '''
 def extractBlastAlignment(refpkg, workdir, query_blast_paths):
+    _LOG.info("Started extracting query pairwise alignments from BLAST output") 
+
     # each marker's BLAST result path is determined in query_blast_paths
     alignment_outdir = workdir + '/query_alignments'
     if len(query_blast_paths) == 0:
@@ -289,6 +291,11 @@ def extractBlastAlignment(refpkg, workdir, query_blast_paths):
             os.makedirs(outdir)
         outpath = os.path.join(outdir, 'est.aln.masked.fasta')
         ret[marker] = outpath
+
+        if os.path.exists(outpath) and os.stat(outpath).st_size > 0:
+            _LOG.info(f"Skipping {marker}, found existing alignment: {outpath}")
+            continue
+
         #outqueriespath = os.path.join(outdir, 'est.aln.masked.queries.fasta')
         #outbackbonepath = os.path.join(outdir, 'est.aln.masked.backbone.fasta')
         extractionRunner(marker, inpath, bbpath, outpath)

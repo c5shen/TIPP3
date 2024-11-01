@@ -102,11 +102,11 @@ class Job(object):
                 if lock:
                     try:
                         lock.acquire()
-                        _LOG.info(f"{self.job_type} completed, output: {outpath}")
+                        _LOG.debug(f"{self.job_type} completed, output: {outpath}")
                     finally:
                         lock.release()
                 else:
-                    _LOG.info(f"{self.job_type} completed, output: {outpath}")
+                    _LOG.debug(f"{self.job_type} completed, output: {outpath}")
                 return outpath
             else:
                 error_msg = ' '.join([f"Error occurred running {self.job_type}.",
@@ -248,3 +248,33 @@ class TIPPJsonMergerJob(Job):
                 '-t', self.taxonomy_path, '-m', self.mapping_path,
                 '-p', '0.0', '-C', '0.0', '-c', self.classification_path]
         return cmd, self.classification_path
+
+'''
+A generic job that is designed for univeral types of additional jobs that
+a user/coder can add to TIPP3. just need to supplement the correct configuration
+in main.config or user.config
+NOTE: the binary executable path given needs to be executable
+'''
+class GenericJob(Job):
+    def __init__(self, **kwargs):
+        Job.__init__(self)
+        self.job_type = 'generic'
+
+        # note: [job_type, path, outpath] needs to be set from configuration file
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+    
+    def get_invocation(self):
+        outpath, cmd = None, None 
+        if getattr(self, 'outpath') != None:
+            outpath = self.outpath
+        if getattr(self, 'cmd') != None:
+            cmd = cmd.split()
+        
+        # raise Error for generic job that does not have a command 
+        if not outpath or not cmd:
+            _LOG.error(f"Generic Job {self.job_type} " 
+                "do not have outpath and cmd in configuration.")
+            exit(1)
+
+        return cmd, outpath
