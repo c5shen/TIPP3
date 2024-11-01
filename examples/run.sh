@@ -15,11 +15,18 @@ if [[ $1 != "" ]]; then
 fi
 
 if [[ $scenario == 1 ]]; then
+    # BLAST alignment, BSCAMPP placement (TIPP3-fast)
     $bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
         --alignment-method blast --placement-method bscampp \
         -t $t
 elif [[ $scenario == 2 ]]; then
+    # BLAST alignment, pplacer-taxtastic placement
     $bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
         --alignment-method blast --placement-method pplacer-taxtastic \
+        -t $t
+elif [[ $scenario == 3 ]]; then
+    # WITCH alignment, pplacer-taxtastic placement (TIPP3)
+    $bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
+        --alignment-method witch --placement-method pplacer-taxtastic \
         -t $t
 fi

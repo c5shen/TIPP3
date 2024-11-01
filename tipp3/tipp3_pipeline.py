@@ -1,4 +1,4 @@
-import time, os, sys, tempfile, re, gzip
+import time, os, sys, shutil
 from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
 
 from tipp3 import get_logger, __version__
@@ -66,11 +66,19 @@ def tipp3_pipeline(*args, **kwargs):
     _LOG.warning('ProcessPoolExecutor instance closed.')
 
     # cleaning up temporary files
-    temp_dirs = ['blast_output', 'query', 'query_alignments',
-            'query_placements']
+    if not Configs.keeptemp:
+        _LOG.info("Removing intermediate output files...")
+        tipp3_clean_temp()
 
     # stop TIPP3
     tipp3_stop(s1)
+
+def tipp3_clean_temp():
+    temp_dirs = ['blast_output', 'query', 'query_alignments',
+            'query_placements']#, 'query_classification']
+    for temp in temp_dirs:
+        shutil.rmtree(os.path.join(Configs.outdir, temp))
+        _LOG.info(f"Removed {temp}")
 
 def tipp3_stop(start_time):
     s2 = time.time()

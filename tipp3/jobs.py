@@ -48,7 +48,7 @@ class Job(object):
     def run(self, stdin="", lock=None, logging=False):
         try:
             cmd, outpath = self.get_invocation()
-            _LOG.info(f"Running job_type: {self.job_type}, output: {outpath}")
+            _LOG.debug(f"Running job_type: {self.job_type}, output: {outpath}")
 
             binpath = cmd[0]
             # special case for "java -jar ..."
