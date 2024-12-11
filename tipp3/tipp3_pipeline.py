@@ -117,8 +117,10 @@ def _init_parser():
     example_usages = '''Example usages:
 > TIPP3 default behavior
     %(prog)s -r refpkg_dir/ -i queries.fasta
-> only output read alignment to marker genes (then exit) 
+> Only output read alignment to marker genes (then exit) 
     %(prog)s -r refpkg_dir/ -i queries.fasta --alignment-only
+> Running TIPP3-fast
+    %(prog)s -r refpkg_dir/ -i queries.fasta --alignment-method blast --placement-method bscampp
 '''
 
     parser = ArgumentParser(

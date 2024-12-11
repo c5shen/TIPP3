@@ -151,9 +151,26 @@ def _read_config_file(filename, cparser, opts,
     return config_defaults
 
 '''
+Validate that Configs is set up correctly, mainly checking if the binary paths
+exist
+'''
+def validateConfigs():
+    b_valid = True
+    ret = []
+    files_to_check = {'PPLACER': Configs.pplacer_path,
+            'BSCAMPP': Configs.bscampp_path,
+            'BLASTN': Configs.blastn_path,
+            'WITCH': Configs.witch_path}
+    for method, path in files_to_check.items():
+        if (not path) or (path == '') or (not os.path.exists(path)):
+            b_valid = False
+            ret.append((method, path))
+    return b_valid, ret
+
+'''
 Build configurations
 '''
-def buildConfigs(parser, cmdline_args, child_process=False):
+def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     # config parser, which first reads in main.config and later overrides
     # with user.config (if specified)
     cparser = configparser.ConfigParser()
@@ -216,3 +233,22 @@ def buildConfigs(parser, cmdline_args, child_process=False):
 
             # check whether the configuration is valid
             set_valid_configuration(k, k_attr)
+
+    # try once for validating Configs being set up correctly
+    # if not, try once for re-initializing the main config file
+    b_valid, invalid_paths = validateConfigs()
+    if not b_valid and not rerun:
+        _LOG.warning('Some software required by TIPP3 do not have valid binaries!')
+
+        # trying once for regenerating
+        _LOG.info('Re-initializing the config file for once...')
+        init_config_file(homepath, rerun=True)
+        buildConfigs(parser, cmdline_args, rerun=True)
+    elif not b_valid and rerun:
+        # if re-initializing does not fix the problem
+        if not b_valid:
+            errmsg = 'Failed to find valid binaries for some software:\n'
+            for item in invalid_paths:
+                errmsg += f'\t{item[0]}: {item[1]}\n'
+                _LOG.error(errmsg)
+                raise ValueError(errmsg)

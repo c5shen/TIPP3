@@ -20,7 +20,7 @@ first time run, need user to initialize the main.config
 if it is not installed through github (i.e., python setup.py config)
 will be needed if installed through pip/pypi
 '''
-def init_config_file(homepath, prioritize_user_software=True):
+def init_config_file(homepath, rerun=False, prioritize_user_software=True):
     # read from sys.argv to find if "-y" or "--bypass-setup" exists
     args = sys.argv[1:]
     bypass_setup = True
@@ -29,19 +29,22 @@ def init_config_file(homepath, prioritize_user_software=True):
 
     # initialize a home.path that points to local user main.config
     # if it exists then pass on
-    if os.path.exists(homepath):
-        # detecting old home.path file based on creation time
-        if os.stat(homepath).st_mtime >= os.stat(__file__).st_mtime:
-            _root_dir, main_config_path = find_main_config(homepath)
-            if _root_dir is None:
-                print('home.path exists but main.config missing, regenerating...')
+    if not rerun:
+        if os.path.exists(homepath):
+            # detecting old home.path file based on creation time
+            if os.stat(homepath).st_mtime >= os.stat(__file__).st_mtime:
+                _root_dir, main_config_path = find_main_config(homepath)
+                if _root_dir is None:
+                    print('home.path exists but main.config missing, regenerating...')
+                else:
+                    return _root_dir, main_config_path
             else:
-                return _root_dir, main_config_path
+                print('Found old home.path and regenerating...')
+                os.remove(homepath)
         else:
-            print('Found old home.path and regenerating...')
-            os.remove(homepath)
+            print('Cannot find home.path: {}'.format(homepath))
     else:
-        print('Cannot find home.path: {}'.format(homepath))
+        print('Re-initializing the config file...')
 
     # install to user local directory
     # bypassing the setup step to directly use the default path
