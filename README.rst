@@ -36,14 +36,14 @@ See the pipeline below for the TIPP3 workflow.
 
 .. image:: https://chengzeshen.com/documents/tipp3/tipp3_overview.png
    :alt: TIPP3 pipeline
-   :width: 70%
+   :width: 100%
    :align: center
 
 +------------------------------------------------+
 | Publication(s)                                 |
 +================================================+
 | (TIPP3) Shen, Chengze, Eleanor Wedell,         |
-| Mihai Pop, and tandy Warnow, "TIPP3 and        |
+| Mihai Pop, and Tandy Warnow, "TIPP3 and        |
 | TIPP3-fast: improved abundance profiling in    |
 | metagenomics." TBD.                            |
 +------------------------------------------------+
@@ -67,15 +67,15 @@ Note and Acknowledgment
 TIPP3 includes and uses:
 
 #. `WITCH <https://github.com/c5shen/WITCH>`__ (v1.0.4).
-#. `Batch-SCAMPP <https://github.com/ewedell/BSCAMPP>`__.
 #. `pplacer <https://github.com/matsen/pplacer>`__ (v1.1.alpha19).
+#. `Batch-SCAMPP <https://github.com/ewedell/BSCAMPP>`__ (v1.0.0).
 
 External Requirements
 ---------------------
-TIPP3 needs BLAST to run. The software will automatically look for ``blastn`` 
-in the ``$PATH`` environment variable. If you have not installed BLAST,
-you can find the latest compiled binaries from
-`https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/`__. 
+**BLAST** is a hard requirement to run TIPP3. The software will automatically
+look for ``blastn`` in the ``$PATH`` environment variable.
+If you have not installed BLAST, you can find the latest version from
+`<https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/>`__. 
 
 Installation
 ------------
