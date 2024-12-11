@@ -1,1 +1,7 @@
+configparser>=5.0.0
+DendroPy>=4.5.2
+numpy>=1.21.6
+psutil>=5.0.0
+setuptools>=60.0.0
+treeswift>=1.1.28
 witch-msa>=1.0.4
