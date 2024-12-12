@@ -119,7 +119,7 @@ Installation Steps
    #    Running TIPP3 for the first time will also create the main config
    #    file at "~/.tipp3/main.config", which stores the default behavior
    #    for running TIPP3 (including all binary executable paths)
-   python3 tipp3.py [-h]    # OR tipp3 [-h] OR tipp3-fast [-h]
+   python3 tipp3.py [-h]    # OR tipp3-accurate [-h] OR tipp3-fast [-h]
 
 ``main.config``
 ~~~~~~~~~~~~~~~
