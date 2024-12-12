@@ -15,6 +15,7 @@ News
 
 TODO list
 ---------
+* 12.12.2024 - Handle .fq file and also .gz file as inputs.
 * 12.11.2024 - Working on a PyPI installation for TIPP3.
 
 Method Overview
