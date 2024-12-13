@@ -15,6 +15,7 @@ _root_dir, main_config_path = init_config_file(homepath)
 # set of valid configparse section names
 valid_config_sections = ['witch', 'bscampp', 'pplacer-taxtastic', 
         'blast', 'refpkg'] 
+logging_levels = set(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'])
 
 _LOG = get_logger(__name__)
 
@@ -42,7 +43,7 @@ class Configs:
     outdir = None
     config_file = None     # Added @ 7.25.2024 
     keeptemp = False
-    #verbose = 'info'
+    verbose = 'INFO'
 
     # choices of parameters
     alignment_method = 'witch'  # or blast
@@ -223,6 +224,10 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
         Configs.num_cpus = os.cpu_count()
 
     # verbose level
+    verbose = os.getenv('TIPP_LOGGING_LEVEL').upper()
+    if verbose in logging_levels:
+        Configs.verbose = verbose
+
     #if args.verbose == 0:
     #    Configs.verbose = 'error'
     #elif args.verbose > 1:
