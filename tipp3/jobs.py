@@ -67,12 +67,24 @@ class Job(object):
                 (str(x) if x is not None else "?NoneType?"
                  for x in cmd)))
         
-            # run the job using Popen with given command
-            # read in stdout and stderr
-            p = Popen(cmd, text=True, stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            self.pid = p.pid
-            stdout, stderr = p.communicate(input=stdin)
+            # logging to a local file at the target outdir
+            # logname: <outdir>/{self.job_type}.txt
+            if logging:
+                logpath = os.path.join(
+                        os.path.dirname(outpath), f'{self.job_type}.txt')
+                outlogging = open(logpath, 'w', 1)
+                p = Popen(cmd, text=True, bufsize=1, stdin=subprocess.PIPE,
+                        stdout=outlogging, stderr=subprocess.PIPE)
+                self.pid = p.pid
+                stdout, stderr = p.communicate(input=stdin)
+                stdout = ''
+                outlogging.close()
+            else:
+                p = Popen(cmd, text=True, bufsize=1, stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                self.pid = p.pid
+                stdout, stderr = p.communicate(input=stdin)
+
             self.returncode = p.returncode
 
             #p = Popen(cmd, bufsize=1, text=True,
@@ -115,13 +127,13 @@ class Job(object):
                 if lock:
                     try:
                         lock.acquire()
-                        _LOG.error(error_msg + '\nSTDOUT: ' + stdout.decode('utf-8') +
-                                '\nSTDERR: ' + stderr.decode('utf-8'))
+                        _LOG.error(error_msg + '\nSTDOUT: ' + stdout +
+                                '\nSTDERR: ' + stderr)
                     finally:
                         lock.release()
                 else:
-                    _LOG.error(error_msg + '\nSTDOUT: ' + stdout.decode('utf-8') +
-                            '\nSTDERR: ' + stderr.decode('utf-8'))
+                    _LOG.error(error_msg + '\nSTDOUT: ' + stdout +
+                            '\nSTDERR: ' + stderr)
                 #_LOG.error(error_msg + '\n' + stdout)
                 exit(1)
         except Exception:
@@ -177,6 +189,7 @@ class BscamppJob(Job):
         # initialize parameters
         self.path = ''
         self.query_alignment_path = ''
+        self.backbone_alignment_path = ''
         self.backbone_tree_path = ''
         self.tree_model_path = ''
         self.outdir = ''
@@ -192,7 +205,8 @@ class BscamppJob(Job):
                 '-i', self.tree_model_path,
                 '-t', self.backbone_tree_path,
                 '-d', self.outdir, '-o', 'placement',
-                '-a', self.query_alignment_path,
+                '-a', self.backbone_alignment_path,
+                '-q', self.query_alignment_path,
                 '--threads', str(self.num_cpus)]
         return cmd, self.outpath 
 

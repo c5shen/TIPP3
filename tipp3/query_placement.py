@@ -57,8 +57,11 @@ def queryPlacement(refpkg, query_alignment_paths):
 
         # default: bscampp Job
         else:
+            backbone_alignment_path = refpkg[marker]['alignment']
+
             placement_job = BscamppJob(path=Configs.bscampp_path,
                     query_alignment_path=query_alignment_path,
+                    backbone_alignment_path=backbone_alignment_path,
                     backbone_tree_path=refpkg[marker]['additional-raxml-br-tree'],
                     tree_model_path=refpkg[marker]['additional-raxml-model-file'],
                     outdir=placement_dir,
@@ -69,5 +72,7 @@ def queryPlacement(refpkg, query_alignment_paths):
 
         # clean up some temp files
         for tf in temp_folders:
-            shutil.rmtree(os.path.join(placement_dir, tf))
+            toremove = os.path.join(placement_dir, tf)
+            if os.path.exists(toremove):
+                shutil.rmtree(toremove)
     return query_placement_paths

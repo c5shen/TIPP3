@@ -38,10 +38,11 @@ class Configs:
 
     # basic input items
     query_path = None
-    refpkg_path = None      # e.g., xxx/yyy/tipp3-refpkg
+    refpkg_path = None     # e.g., xxx/yyy/tipp3-refpkg
     outdir = None
     config_file = None     # Added @ 7.25.2024 
     keeptemp = False
+    verbose = 'info'
 
     # choices of parameters
     alignment_method = 'witch'  # or blast
@@ -220,6 +221,15 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
         Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
     else:
         Configs.num_cpus = os.cpu_count()
+
+    # verbose level
+    #if args.verbose == 0:
+    #    Configs.verbose = 'error'
+    #elif args.verbose > 1:
+    #    Configs.verbose = 'debug'
+    #else:
+    #    Configs.verbose = 'info'
+
 
     #if args.max_concurrent_jobs:
     #    Configs.max_concurrent_jobs = args.max_concurrent_jobs

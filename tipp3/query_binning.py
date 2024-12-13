@@ -45,7 +45,7 @@ def queryBinning(refpkg):
                 database_path=database_path,
                 outdir=blastn_outdir,
                 num_threads=Configs.num_cpus)
-        blastn_outpath = job.run()
+        blastn_outpath = job.run(logging=True)
 
         # remove token to indicate job finished
         try:

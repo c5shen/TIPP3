@@ -258,8 +258,9 @@ def extractionRunner(marker, inpath, bbpath, outpath):
         combined = constructCombined(seq, backbone_length, aligned_columns, retained_columns)
         aln[taxon] = combined
     # write a masked version to local (masking lower case letters)
-    #aln.remove_insertion_columns()
-    aln.write(outpath, 'FASTA')
+    # NOTE: only retaining query keys to save space
+    subaln = aln.sub_alignment(list(mapped.keys()))
+    subaln.write(outpath, 'FASTA')
 
     ## write a query-only version
     #subaln = aln.sub_alignment(list(mapped.keys()))
@@ -289,7 +290,8 @@ def extractBlastAlignment(refpkg, workdir, query_blast_paths):
         outdir = os.path.join(alignment_outdir, marker)
         if not os.path.isdir(outdir):
             os.makedirs(outdir)
-        outpath = os.path.join(outdir, 'est.aln.masked.fasta')
+        # NOTE: only keep the query alignments (backbone part is unnecessary)
+        outpath = os.path.join(outdir, 'est.aln.masked.queries.fasta')
         ret[marker] = outpath
 
         if os.path.exists(outpath) and os.stat(outpath).st_size > 0:

@@ -10,3 +10,4 @@ examples/*.zip
 examples/feeder.py
 examples/job.info
 examples/*.out
+examples/*_scenario*

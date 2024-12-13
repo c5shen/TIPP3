@@ -46,7 +46,13 @@ def get_logging_level(logging_level='info'):
             'WARNING': logging.WARNING, 'ERROR': logging.ERROR,
             'CRITICAL': logging.CRITICAL,
             }
-    ll = logging_level.upper()
+    # obtain environment variable to determine the logging level,
+    # if TIPP3_LOGGING_LEVEL is not empty
+    env_level = os.getenv('TIPP_LOGGING_LEVEL')
+    if env_level is not None:
+        ll = env_level.upper()
+    else:
+        ll = logging_level.upper()
     return logging_level_map.get(ll, logging.INFO) 
     #return logging.DEBUG if _DEBUG else logging.INFO
 

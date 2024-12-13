@@ -179,6 +179,10 @@ def _init_parser():
             "Miscellaneous options".upper(),
             ("Optional parameters for TIPP3 setup/config etc."))
     parser.groups['misc_group'] = misc_group
+    #misc_group.add_argument('--verbose', type=int,
+    #        help=' '.join(["Verbose level for logging.",
+    #        "0: error, 1: info, >1: debug. [default: 1]"]),
+    #        default=1, required=False)
     misc_group.add_argument('--alignment-only', action='store_const',
             const=True, default=False,
             help='Only obtain query alignments to marker genes and stop TIPP3.')
