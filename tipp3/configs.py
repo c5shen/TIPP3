@@ -42,7 +42,7 @@ class Configs:
     outdir = None
     config_file = None     # Added @ 7.25.2024 
     keeptemp = False
-    verbose = 'info'
+    #verbose = 'info'
 
     # choices of parameters
     alignment_method = 'witch'  # or blast
