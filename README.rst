@@ -145,7 +145,7 @@ The general command to run TIPP3:
 
 .. code:: bash
 
-   python3 tipp3.py -r [reference package path] -i [query reads] -o [output directory]
+   python3 tipp3.py -r [reference package path] -i [query reads] -d [output directory]
 
 Examples
 ~~~~~~~~
