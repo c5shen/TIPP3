@@ -318,9 +318,12 @@ def splitQueries(refpkg, query_aln, query_outdir):
     info_f.write('qseqid,sseqid,marker,trim_qstart,trim_qend,qlen\n')
 
     # go over each entry and write query to corresponding marker gene output
+    # ONLY CONSIDER THE MARKERS THAT ARE USED
     for taxon, v in query_aln.items():
         sseqid, smarker = v['source_taxon']
         qstart, qend, sstart, send = v['qstart'], v['qend'], v['sstart'], v['send']
+        if smarker not in marker_fptr:
+            continue
 
         # retain only the part that's mapped by BLASTN
         seq = v['qaln'].replace('-', '').upper()
@@ -331,7 +334,7 @@ def splitQueries(refpkg, query_aln, query_outdir):
         else:
             rev_seq = seq
         
-        # write to corresponding marker gene
+        # write to corresponding marker gene (if using)
         marker_fptr[smarker].write('>{}\n{}\n'.format(taxon, rev_seq))
         info_f.write('{},{},{},{},{},{}\n'.format(taxon, sseqid, smarker,
             qstart, qend, qend - qstart + 1))
