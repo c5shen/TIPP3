@@ -69,7 +69,6 @@ Note and Acknowledgment
 ~~~~~~~~~~~~~~~~~~~~~~~
 TIPP3 includes and uses:
 
-#. `WITCH <https://github.com/c5shen/WITCH>`__ (v1.0.4).
 #. `pplacer <https://github.com/matsen/pplacer>`__ (v1.1.alpha19).
 #. `Batch-SCAMPP <https://github.com/ewedell/BSCAMPP>`__ (v1.0.0).
 
