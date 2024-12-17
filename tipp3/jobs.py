@@ -5,7 +5,7 @@ Jobs are designed to be run standalone, as long as all parameters
 are provided correctly.
 '''
 
-import os, shutil, subprocess, stat, re, traceback
+import os, shutil, subprocess, stat, re, traceback, shlex
 import threading
 from subprocess import Popen
 from abc import abstractmethod
@@ -85,7 +85,7 @@ class Job(object):
                 # deal with piping between multiple commands (if any)
                 if '|' in scmd:
                     _stdout = subprocess.PIPE
-                    subcmds = [x.strip().split() for x in scmd.split('|')]
+                    subcmds = [shlex.split(x) for x in scmd.split('|')]
                     prev_p = Popen(subcmds[0], text=True, bufsize=1,
                             stdout=_stdout)
                     for i in range(1, len(subcmds)):
@@ -96,8 +96,9 @@ class Job(object):
                             stdin=prev_p.stdout,
                             stdout=_stdout, stderr=subprocess.PIPE)
                         self.pid = p.pid
-                        stdout, stderr = p.communicate(input=stdin)
-                        stdout = ''
+                        prev_p = p
+                    stdout, stderr = p.communicate()
+                    stdout = ''
                 else:
                     p = Popen(cmd, text=True, bufsize=1,
                             stdin=subprocess.PIPE,
@@ -108,7 +109,7 @@ class Job(object):
                 outlogging.close()
             else:
                 if '|' in scmd:
-                    subcmds = [x.strip().split() for x in scmd.split('|')]
+                    subcmds = [shlex.split(x) for x in scmd.split('|')]
                     prev_p = Popen(subcmds[0], text=True, bufsize=1,
                             stdout=subprocess.PIPE)
                     for i in range(1, len(subcmds)):
@@ -116,7 +117,8 @@ class Job(object):
                             stdin=prev_p.stdout,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         self.pid = p.pid
-                        stdout, stderr = p.communicate(input=stdin)
+                        prev_p = p
+                    stdout, stderr = p.communicate()
                 else:
                     p = Popen(cmd, text=True, bufsize=1,
                             stdin=subprocess.PIPE,
@@ -213,7 +215,8 @@ class BlastnJob(Job):
 
         # check input type: if .fasta as suffix then it is fine
         # if .fasta.gz suffix, then use the file as stdin 
-        suffix = self.query_path.split('.')[-1]
+        name_parts = self.query_path.split('.')
+        suffix = name_parts[-1]
         if suffix in ['fa', 'fasta']:
             cmd = [self.path, '-db', self.database_path,
                     '-outfmt', str(self.outfmt),
@@ -221,12 +224,20 @@ class BlastnJob(Job):
                     '-out', self.outpath,
                     '-num_threads', str(self.num_threads)]
         elif suffix in ['gz', 'gzip']: 
-            cmd = ['gzip', '-dc', self.query_path, '|',
+            cmd = ['gzip', '-dc', self.query_path, '|']
+            # check if this is fasta/fa gzip or fastq/fq gzip
+            if len(name_parts) > 2:
+                suffix2 = name_parts[-2]
+
+            if suffix2 in ['fastq', 'fq']:
+                cmd.extend(['awk',
+                    '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'', '|'])
+            cmd.extend([
                     self.path, '-db', self.database_path,
                     '-outfmt', str(self.outfmt),
                     '-query', '-',
                     '-out', self.outpath,
-                    '-num_threads', str(self.num_threads)]
+                    '-num_threads', str(self.num_threads)])
         else:
             # will raise ValueError when run
             cmd = []
