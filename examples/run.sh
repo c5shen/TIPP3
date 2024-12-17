@@ -11,9 +11,7 @@ time=/usr/bin/time
 
 # example to run TIPP3 with a given refpkg and a set of query reads
 bin=../tipp3.py
-#inpath=data/RplO_COG0200.queries.fasta
-inpath=data/small_set.queries.fasta
-#inpath=data/testing_known_2_dataset21.queries.fasta
+inpath=data/nanopore.small.queries.fasta
 refpkg=/home/chengze5/tallis/tipp3/tipp3-refpkg
 t=16
 
@@ -41,5 +39,12 @@ elif [[ $scenario == 3 ]]; then
     outdir=tipp3_scenario3
     $bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
         --alignment-method witch --placement-method pplacer-taxtastic \
+        -t $t
+elif [[ $scenario == 4 ]]; then
+    # TIPP3-fast (BLAST+BSCAMPP) with .gz input type (fasta file)
+    inpath=data/nanopore.queries.fasta.gz
+    outdir=tipp3_scenario4
+    $bin -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
+        --alignment-method blast --placement-method bscampp \
         -t $t
 fi

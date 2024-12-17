@@ -11,12 +11,12 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
-* Nothing new right now.
+* 12.16.2024 - TIPP3 now can handle gzip fasta file as input (e.g., ``queries.fasta.gz``).
 
 TODO list
 ---------
+* 12.16.2024 - Handle .fq file inputs.
 * 12.12.2024 - Finish WITCH alignment pipeline.
-* 12.12.2024 - Handle .fq file and also .gz file as inputs.
 * 12.11.2024 - Working on a PyPI installation for TIPP3.
 
 Method Overview

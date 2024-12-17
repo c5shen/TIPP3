@@ -224,7 +224,7 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
         Configs.num_cpus = os.cpu_count()
 
     # verbose level
-    verbose = os.getenv('TIPP_LOGGING_LEVEL').upper()
+    verbose = os.getenv('TIPP_LOGGING_LEVEL', 'info').upper()
     if verbose in logging_levels:
         Configs.verbose = verbose
 

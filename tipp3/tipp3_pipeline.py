@@ -143,7 +143,9 @@ def _init_parser():
     parser.groups = dict()
     parser.groups['basic_group'] = basic_group
     basic_group.add_argument('-i', '--query-path', type=str,
-        help='Path to a set of unaligned query reads for classification',
+        help=' '.join(['Path to a set of unaligned query reads',
+            'for classification.', 'Accepted format:'
+            '.fa/.fasta (can be compressed as a .gz file).']),
         required=True)
     #TODO - not making this required and invoke download for TIPP3 refpkg
     # if no refpkg is supplied

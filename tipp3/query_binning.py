@@ -87,8 +87,16 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
 
     detect_path = blastn_outpath + '.finished'
     if not os.path.exists(detect_path):
-        query_aln = readBlastnOutput(blastn_outpath, gene_mapping, threshold)
+        query_aln, query_markers_mapped = readBlastnOutput(
+                blastn_outpath, gene_mapping, threshold)
         query_blast_paths = {}
+
+        # write the mapped marker gene(s) for each mapped read
+        mapped_path = '{}/query_mapped_markers.tsv'.format(blastn_outdir)
+        with open(mapped_path, 'w') as f:
+            f.write('read_name\tnum_mapped_markers\tmapped_markers\n')
+            for k, v in query_markers_mapped.items():
+                f.write('{}\t{}\t{}\n'.format(k, len(v), '|'.join(v)))
         
         # read in marker genes to use
         markers = refpkg['genes']
@@ -104,11 +112,12 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
             marker_fptr[marker]['count'] = 0
         
         for k, v in query_aln.items():
+            # k --> (taxon_name, marker)
+            taxon = k[0]
             marker = v['source_taxon'][1]
-            # only deal with 
             if marker in marker_fptr:
                 towrite = [v[_x] for _x in write_order]
-                marker_fptr[marker]['fptr'].write('>{}\n{}\n'.format(k, towrite))
+                marker_fptr[marker]['fptr'].write('>{}\n{}\n'.format(taxon, towrite))
                 marker_fptr[marker]['count'] += 1
 
         for marker in markers:
@@ -200,9 +209,12 @@ helper function to read in blastn output
 '''
 def readBlastnOutput(blastn_outpath, gene_mapping, threshold):
     query_aln = defaultdict(dict)
+    query_markers_mapped = defaultdict(set)
+
     with open(blastn_outpath, 'r') as f:
         line = f.readline()
         b_consider, scan_mode, cur_taxon = False, False, ''
+        mapped_markers = set()
 
         # initialization of the following
         # source_taxon, qcov, qstart, qend, qaln, sstart, send, saln
@@ -222,18 +234,23 @@ def readBlastnOutput(blastn_outpath, gene_mapping, threshold):
                 # check if (1) qcov >= threshold
                 #          (2) cur_aln has better coverage than previous one
                 if cur_taxon != '':
-                    cur_aln = updateQueryAlignment(
-                            query_aln, cur_taxon, cur_aln, threshold)
+                    cur_aln, _ = updateQueryAlignment(
+                            query_aln, cur_taxon, cur_aln, threshold,
+                            mapped_markers)
+                    if len(mapped_markers) > 0:
+                        query_markers_mapped[cur_taxon].update(mapped_markers)
                     cur_taxon = ''
                     scan_mode = False
+                    mapped_markers.clear()
             # is actively reading in entries for a query
             elif b_consider:
                 if line.startswith('>'):
                     # cur_aln is not empty, flush current results before moving
                     # to the next one
                     if cur_aln['source_taxon'][1] != '':
-                        cur_aln = updateQueryAlignment(
-                                query_aln, cur_taxon, cur_aln, threshold)
+                        cur_aln, mapped_markers = updateQueryAlignment(
+                                query_aln, cur_taxon, cur_aln, threshold,
+                                mapped_markers)
                     source = line.split('>')[1]
                     # obtain corresponding marker gene from gene_mapping
                     scan_mode = True
@@ -264,26 +281,50 @@ def readBlastnOutput(blastn_outpath, gene_mapping, threshold):
                         cur_aln['send'] = int(parts[3])
             # move to next line
             line = f.readline()
-    return query_aln
+    return query_aln, query_markers_mapped
 
 '''
 helper function to update query_aln with a new entry recorded
 replace the old one if the new one has longer coverage
 returns a completely new entry for the following scan
 '''
-def updateQueryAlignment(query_aln, cur_taxon, cur_aln, threshold):
+def updateQueryAlignment(query_aln, cur_taxon, cur_aln, threshold,
+        mapped_markers):
     # compute current query coverage
+    mapped_marker = cur_aln['source_taxon'][1]
+    new_mapped_markers = set(mapped_markers)
     cur_aln['qcov'] = abs(cur_aln['qstart'] - cur_aln['qend']) + 1
     if cur_aln['qcov'] >= threshold:
         # new entry
-        if len(query_aln[cur_taxon]) == 0:
-            query_aln[cur_taxon] = cur_aln
-            # compare current qcov to the one already stored
-        elif cur_aln['qcov'] > query_aln[cur_taxon]['qcov']:
-            query_aln[cur_taxon] = cur_aln
+        # go over previously mapped markers and identify their mapped regions.
+        # check if there is any overlap with cur_aln
+        can_add = True
+        for prev_marker in mapped_markers:
+            # ASSUMPTION: prev_marker exists
+            prev_aln = query_aln[(cur_taxon, prev_marker)]
+            prev_start, prev_end = prev_aln['qstart'], prev_aln['qend']
+            prev_cov = prev_aln['qcov']
+            # (1) overlaps
+            if max(prev_start, cur_aln['qstart']) < min(prev_end, cur_aln['qend']):
+                if prev_cov < cur_aln['qcov']:
+                    # remove old mapping if its coverage is smaller
+                    query_aln.pop((cur_taxon, prev_marker))
+                    new_mapped_markers.remove(prev_marker)
+                else:
+                    # we cannot add cur_aln to query_aln
+                    can_add = False
+        # (2) either no overlap or overlap wins
+        if can_add:
+            query_aln[(cur_taxon, mapped_marker)] = cur_aln
+            new_mapped_markers.add(mapped_marker)
+        #if len(query_aln[cur_taxon]) == 0:
+        #    query_aln[cur_taxon] = cur_aln
+        #    # compare current qcov to the one already stored
+        #elif cur_aln['qcov'] > query_aln[cur_taxon]['qcov']:
+        #    query_aln[cur_taxon] = cur_aln
     return {'source_taxon': ('', ''), 'qcov': -1,
         'qstart': -1, 'qend': -1, 'qaln': '',
-        'sstart': -1, 'send': -1, 'saln': ''}
+        'sstart': -1, 'send': -1, 'saln': ''}, new_mapped_markers
 
 '''
 helper function to slit queries to marker genes and write to local for
@@ -319,7 +360,9 @@ def splitQueries(refpkg, query_aln, query_outdir):
 
     # go over each entry and write query to corresponding marker gene output
     # ONLY CONSIDER THE MARKERS THAT ARE USED
-    for taxon, v in query_aln.items():
+    for k, v in query_aln.items():
+        # k --> (taxon_name, marker)
+        taxon = k[0]
         sseqid, smarker = v['source_taxon']
         qstart, qend, sstart, send = v['qstart'], v['qend'], v['sstart'], v['send']
         if smarker not in marker_fptr:

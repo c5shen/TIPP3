@@ -45,17 +45,23 @@ class Job(object):
 
     # run the job with given invocation defined in a child class
     # raise errors when encountered
-    def run(self, stdin="", lock=None, logging=False):
+    def run(self, stdin="", lock=None, logging=False, shell=False):
         try:
             cmd, outpath = self.get_invocation()
             _LOG.debug(f"Running job_type: {self.job_type}, output: {outpath}")
+
+            # failsafe for NotImplemented jobs
+            if len(cmd) == 0:
+                raise ValueError(
+                        f"{self.job_type} does not have a valid run command. "
+                        "It might be due to (invalid input types, ).")
 
             binpath = cmd[0]
             # special case for "java -jar ..."
             if binpath == 'java':
                 binpath = cmd[2]
 
-            assert os.path.exists(binpath), \
+            assert os.path.exists(binpath) or binpath == "gzip", \
                     ("executable for %s does not exist: %s" % 
                      (self.job_type, binpath))
             assert \
@@ -69,21 +75,54 @@ class Job(object):
         
             # logging to a local file at the target outdir
             # logname: <outdir>/{self.job_type}.txt
+            stdout, stderr = '', ''
+            scmd = ' '.join(cmd)
             if logging:
                 logpath = os.path.join(
                         os.path.dirname(outpath), f'{self.job_type}.txt')
                 outlogging = open(logpath, 'w', 1)
-                p = Popen(cmd, text=True, bufsize=1, stdin=subprocess.PIPE,
-                        stdout=outlogging, stderr=subprocess.PIPE)
-                self.pid = p.pid
-                stdout, stderr = p.communicate(input=stdin)
-                stdout = ''
+
+                # deal with piping between multiple commands (if any)
+                if '|' in scmd:
+                    _stdout = subprocess.PIPE
+                    subcmds = [x.strip().split() for x in scmd.split('|')]
+                    prev_p = Popen(subcmds[0], text=True, bufsize=1,
+                            stdout=_stdout)
+                    for i in range(1, len(subcmds)):
+                        if i == len(subcmds) - 1:
+                            _stdout = outlogging
+
+                        p = Popen(subcmds[i], text=True, bufsize=1,
+                            stdin=prev_p.stdout,
+                            stdout=_stdout, stderr=subprocess.PIPE)
+                        self.pid = p.pid
+                        stdout, stderr = p.communicate(input=stdin)
+                        stdout = ''
+                else:
+                    p = Popen(cmd, text=True, bufsize=1,
+                            stdin=subprocess.PIPE,
+                            stdout=outlogging, stderr=subprocess.PIPE)
+                    self.pid = p.pid
+                    stdout, stderr = p.communicate(input=stdin)
+                    stdout = ''
                 outlogging.close()
             else:
-                p = Popen(cmd, text=True, bufsize=1, stdin=subprocess.PIPE,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                self.pid = p.pid
-                stdout, stderr = p.communicate(input=stdin)
+                if '|' in scmd:
+                    subcmds = [x.strip().split() for x in scmd.split('|')]
+                    prev_p = Popen(subcmds[0], text=True, bufsize=1,
+                            stdout=subprocess.PIPE)
+                    for i in range(1, len(subcmds)):
+                        p = Popen(subcmds[i], text=True, bufsize=1,
+                            stdin=prev_p.stdout,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        self.pid = p.pid
+                        stdout, stderr = p.communicate(input=stdin)
+                else:
+                    p = Popen(cmd, text=True, bufsize=1,
+                            stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    self.pid = p.pid
+                    stdout, stderr = p.communicate(input=stdin)
 
             self.returncode = p.returncode
 
@@ -171,11 +210,26 @@ class BlastnJob(Job):
         #blast:database = blast/alignment.fasta.db
         #blast:seq-to-marker-map = blast/seq2marker.tab
         self.outpath = os.path.join(self.outdir, 'blast.alignment.out') 
-        cmd = [self.path, '-db', self.database_path,
-                '-outfmt', str(self.outfmt),
-                '-query', self.query_path,
-                '-out', self.outpath,
-                '-num_threads', str(self.num_threads)]
+
+        # check input type: if .fasta as suffix then it is fine
+        # if .fasta.gz suffix, then use the file as stdin 
+        suffix = self.query_path.split('.')[-1]
+        if suffix in ['fa', 'fasta']:
+            cmd = [self.path, '-db', self.database_path,
+                    '-outfmt', str(self.outfmt),
+                    '-query', self.query_path,
+                    '-out', self.outpath,
+                    '-num_threads', str(self.num_threads)]
+        elif suffix in ['gz', 'gzip']: 
+            cmd = ['gzip', '-dc', self.query_path, '|',
+                    self.path, '-db', self.database_path,
+                    '-outfmt', str(self.outfmt),
+                    '-query', '-',
+                    '-out', self.outpath,
+                    '-num_threads', str(self.num_threads)]
+        else:
+            # will raise ValueError when run
+            cmd = []
         return cmd, self.outpath
 
 '''
