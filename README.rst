@@ -78,7 +78,7 @@ TIPP3 includes and uses:
 
 Installation
 ------------
-TIPP3 was tested on **Python 3.8 to 3.11**.
+TIPP3 was tested on **Python 3.8 to 3.12**.
 
 There are two ways to install and use TIPP3: with PyPI (``pip install``) or
 directly with this GitHub repository. If you have any difficulties installing

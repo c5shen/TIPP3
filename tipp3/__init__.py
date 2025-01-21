@@ -25,7 +25,7 @@ Updated @ 9.22.2024 by Chengze Shen
 
 Major changes to suit TIPP3 pipeline.
 '''
-__version__ = "1.0.0"
+__version__ = "0.1a"
 _INSTALL_PATH = __path__[0]
 
 __all__ = ['read_binning', 'read_alignment', 'read_placement',
