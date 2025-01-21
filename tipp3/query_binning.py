@@ -387,9 +387,12 @@ def splitQueries(refpkg, query_aln, query_outdir):
     info_f.close()
 
     # remove empty queries.fasta
-    for marker, _outpath in ret.items():
+    tmp_markers = list(ret.keys())
+    for marker in tmp_markers:
+        _outpath = ret[marker]
         if os.stat(_outpath).st_size == 0:
             _LOG.debug(f'Removing redundant {marker}: {_outpath}')
             os.remove(_outpath)
+            ret.pop(marker)
     return ret
 

@@ -2,18 +2,20 @@
 #SBATCH --time=04:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=16
-#SBATCH --partition=cs
+##SBATCH --partition=cs
+#SBATCH --partition=eng-instruction
 #SBATCH --mem=128GB
 
-module load python/3.9.16
-module load java/11
+module load python
 time=/usr/bin/time
 
 # example to run TIPP3 with a given refpkg and a set of query reads
 bin=../tipp3.py
-inpath=data/nanopore.small.queries.fasta
-refpkg=/home/chengze5/tallis/tipp3/tipp3-refpkg
+inpath=data/illumina.small.queries.fasta
 t=16
+
+# NOTICE: supplement your own path of refpkg here
+refpkg=$HOME/tallis/tipp3/tipp3-refpkg
 
 scenario=1
 if [[ $1 != "" ]]; then

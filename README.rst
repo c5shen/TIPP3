@@ -11,13 +11,17 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
+* 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
+  the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
+  TIPP3-fast is used.
 * 12.17.2024 - TIPP3 now can handle both fasta (``.fasta`` or ``.fa``)
   and fastq (``.fastq`` or ``.fq``) files as inputs, and they can be in
   gzip format (e.g., ``queries.fasta.gz`` or ``queries.fq.gz``).
 
 TODO list
 ---------
-* 12.12.2024 - Finish WITCH alignment pipeline.
+* 1.20.2025 - Add a script for downloading the latest reference package to a
+  user specified directory.
 * 12.11.2024 - Working on a PyPI installation for TIPP3.
 
 Method Overview
@@ -141,15 +145,69 @@ highest priority and will override both config files, if any parameters overlap.
 
 Usage
 -----
-The general command to run TIPP3:
+The general command to run TIPP3 is listed below. By default, TIPP3-fast is run,
+which is significantly faster than the more accurate TIPP3 mode. See examples
+below for how to customize the TIPP3 pipeline.
 
 .. code:: bash
 
+   # (Optional) change the logging level to DEBUG for more verbose logging
+   export TIPP_LOGGING_LEVEL=debug
+
    python3 tipp3.py -r [reference package path] -i [query reads] -d [output directory]
+
 
 Examples
 ~~~~~~~~
-TODO
+
+Some examples of TIPP3 usage can be found at the bottom of the help text
+running:
+
+.. code:: bash
+
+   python3 tipp3.py -h
+
+
+All of the following examples can be found in the **examples/run.sh** bash
+script, with example data stored under **examples/data**. The default example
+data used is a small set of Illumina short reads denoted as
+``illumina.small.queries.fasta``.
+
+Scenario 1
+++++++++++
+(TIPP3-fast) Use BLAST for query alignment, and Batch-SCAMPP (``bscampp``) for
+query placement. Keep all temporary files during the run.
+
+.. code:: bash
+
+   python3 tipp3.py -i examples/illumina.small.queries.fasta \
+      --reference-package [reference package dir] --outdir tipp3_scenario1 \
+      --alignment-method blast --placement-method bscampp \
+      -t 16 --keeptemp
+
+Scenario 2
+++++++++++
+Use BLAST for query alignment, and pplacer with the taxtastic package for
+query placement (``pplacer-taxtastic``). Keep all temporary files. 
+
+.. code:: bash
+
+   python3 tipp3.py -i examples/illumina.small.queries.fasta \
+      --reference-package [reference package dir] --outdir tipp3_scenario1 \
+      --alignment-method blast --placement-method pplacer-taxtastic \
+      -t 16 --keeptemp
+
+Scenario 3
+++++++++++
+(TIPP3) Use WITCH for query alignment, and ``pplacer-taxtastic`` for query
+placement. Keep all temporary files.
+
+.. code:: bash
+
+   python3 tipp3.py -i examples/illumina.small.queries.fasta \
+      --reference-package [reference package dir] --outdir tipp3_scenario1 \
+      --alignment-method witch --placement-method pplacer-taxtastic \
+      -t 16 --keeptemp
 
 
 .. |CHANGELOG| image:: https://img.shields.io/badge/CHANGELOG-gray?style=flat

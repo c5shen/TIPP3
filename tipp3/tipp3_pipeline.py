@@ -55,6 +55,7 @@ def tipp3_pipeline(*args, **kwargs):
         tipp3_stop(s1)
 
     # (3) read placement to corresponding marker gene taxonomic trees
+    print(query_alignment_paths)
     query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
 
     # (4) collect results and abundance profile
@@ -116,11 +117,12 @@ def _init_parser():
     # example usages
     example_usages = '''Example usages:
 > TIPP3 default behavior
-    %(prog)s -r refpkg_dir/ -i queries.fasta
+    %(prog)s -r refpkg_dir/ -i queries.fasta[.gz]
+    %(prog)s -r refpkg_dir/ -i queries.fq[.gz]
 > Only output read alignment to marker genes (then exit) 
-    %(prog)s -r refpkg_dir/ -i queries.fasta --alignment-only
+    %(prog)s -r refpkg_dir/ -i queries.fasta[.gz] --alignment-only
 > Running TIPP3-fast
-    %(prog)s -r refpkg_dir/ -i queries.fasta --alignment-method blast --placement-method bscampp
+    %(prog)s -r refpkg_dir/ -i queries.fasta[.gz] --alignment-method blast --placement-method bscampp
 '''
 
     parser = ArgumentParser(
@@ -145,7 +147,7 @@ def _init_parser():
     basic_group.add_argument('-i', '--query-path', type=str,
         help=' '.join(['Path to a set of unaligned query reads',
             'for classification.', 'Accepted format:'
-            '.fa/.fasta (can be compressed as a .gz file).']),
+            '.fa/.fasta/.fq/.fastq (can be compressed as a .gz file).']),
         required=True)
     #TODO - not making this required and invoke download for TIPP3 refpkg
     # if no refpkg is supplied

@@ -46,8 +46,9 @@ class Configs:
     verbose = 'INFO'
 
     # choices of parameters
-    alignment_method = 'witch'  # or blast
-    placement_method = 'pplacer-taxtastic'  # or other method
+    # default to TIPP3-fast
+    alignment_method = 'blast'  # or blast
+    placement_method = 'bscampp'  # or other method
 
     # binary paths (from config file)
     # these are just the default ones. User can modularize the method

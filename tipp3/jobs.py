@@ -244,6 +244,39 @@ class BlastnJob(Job):
         return cmd, self.outpath
 
 '''
+A WITCH alignment job that will run WITCH to align a set of query reads
+to their target marker gene backbone alignment
+'''
+class WITCHAlignmentJob(Job):
+    def __init__(self, **kwargs):
+        Job.__init__(self)
+        self.job_type = 'witch-alignment'
+
+        # initialize parameters
+        self.path = ''
+        self.query_path = ''
+        self.backbone_path = ''
+        self.backbone_tree_path = ''
+        self.outdir = ''
+        self.num_cpus = 1
+
+        # set parameters
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        self.kwargs = kwargs
+    
+    def get_invocation(self):
+        self.outpath = os.path.join(self.outdir, 'est.aln.masked.fasta')
+        cmd = [self.path, '-o', 'est.aln.fasta',
+                ]
+        # extend from additional kwargs
+        for k, v in self.kwargs.items():
+            if k != 'path':
+                param_name = k.replace('_', '-')
+                cmd.extend([f"--{param_name}", str(v)])
+        return cmd, self.outpath
+
+'''
 A BSCAMPP job that will run BSCAMPP for placing aligned query reads 
 '''
 class BscamppJob(Job):

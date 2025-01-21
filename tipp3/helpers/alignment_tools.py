@@ -8,6 +8,7 @@ from functools import reduce
 from dendropy.datamodel.taxonmodel import Taxon
 import time
 import io
+import lz4.frame
 from collections import defaultdict
 try:
     from collections.abc import Mapping
@@ -117,10 +118,17 @@ def read_fasta(src, remove_gaps=False):
     """
     file_obj = None
     if isinstance(src, str):
-        try:
-            file_obj = open(src, "r")
-        except IOError:
-            print(("The file `%s` does not exist, exiting gracefully" % src))
+        # allow opening with '.lz4' suffix file
+        if src.split('.')[-1] == 'lz4':
+            try:
+                file_obj = lz4.frame.open(src, 'rt')
+            except IOError:
+                print(("The file `%s` does not exist, exiting gracefully" % src))
+        else:
+            try:
+                file_obj = open(src, "r")
+            except IOError:
+                print(("The file `%s` does not exist, exiting gracefully" % src))
     elif isinstance(src, filetypes):
             file_obj = src
     else:
