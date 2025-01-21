@@ -107,7 +107,8 @@ Requirements
    psutil>=5.0.0
    setuptools>=60.0.0
    treeswift>=1.1.28
-   witch-msa>=1.0.4
+   witch-msa>=1.0.7
+   lz4>=4.3.2
 
 Installation Steps
 ++++++++++++++++++
