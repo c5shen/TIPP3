@@ -31,10 +31,6 @@ _INSTALL_PATH = __path__[0]
 __all__ = ['read_binning', 'read_alignment', 'read_placement',
         'tipp3_pipeline', 'jobs', 'refpkg_downloader']
 
-def is_temp_kept():
-    return _DEBUG
-
-
 def get_setup_path():
     return _INSTALL_PATH
 

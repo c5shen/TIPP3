@@ -102,83 +102,83 @@ def getAlignedColumns(taxon, seq_len, aln_seq, target_seq, target_start):
                 tidx += 1
     return aligned_columns
 
-'''
-Obtain alignment_graph and backtrace to find the query merged alignment
-'''
-def getBacktrace(aligned_columns, retained_columns):
-    # target start marks from where blast considers the alignment of the target sequence
-    alignment_graph = [[0 for _j in range(backbone_length + 1)] for _i in range(seq_len + 1)]
-    weights = defaultdict(int)
-    min_col_ind, max_col_ind = backbone_length + 1, -1
+#'''
+#Obtain alignment_graph and backtrace to find the query merged alignment
+#'''
+#def getBacktrace(aligned_columns, retained_columns):
+#    # target start marks from where blast considers the alignment of the target sequence
+#    alignment_graph = [[0 for _j in range(backbone_length + 1)] for _i in range(seq_len + 1)]
+#    weights = defaultdict(int)
+#    min_col_ind, max_col_ind = backbone_length + 1, -1
+#
+#    for i in range(len(aligned_columns)):
+#        subset_col = aligned_columns[i]
+#        # ignore insertions
+#        if subset_col == -1:
+#            continue
+#        j = retained_columns[subset_col]
+#        weights[(i, j)] = 1   # meaning query[i] is aligned to backbone position j
+#        min_col_ind = min(min_col_ind, j)
+#        max_col_ind = max(max_col_ind, j)
+#    # print(weights)
+#
+#    backtrace = [[0 for _j in range(backbone_length + 1)] for _i in range(seq_len + 1)]
+#    for i in range(0, seq_len + 1):
+#        for j in range(min_col_ind, max_col_ind + 2):
+#            if i == 0 or j == min_col_ind:
+#                alignment_graph[i][j] = 0   # on the edge of the alignment graph
+#                continue
+#            cur_max = 0; cur_bt = 0
+#            w = weights.get((i-1, j-1), 0)
+#            values = [alignment_graph[i-1][j-1] + w,
+#                      alignment_graph[i-1][j],
+#                      alignment_graph[i][j-1]]
+#            for _ind, val in enumerate(values):
+#                if _ind == 0 and w <= 0:
+#                    cur_bt = 1    # in the case position i-1 in query is not mapped to j-1 in backbone, prefer going "upward"
+#                    continue
+#                if val > cur_max:
+#                    cur_max = val
+#                    cur_bt = _ind
+#            alignment_graph[i][j] = cur_max
+#            backtrace[i][j] = cur_bt
+#    return backtrace, min_col_ind, max_col_ind
 
-    for i in range(len(aligned_columns)):
-        subset_col = aligned_columns[i]
-        # ignore insertions
-        if subset_col == -1:
-            continue
-        j = retained_columns[subset_col]
-        weights[(i, j)] = 1   # meaning query[i] is aligned to backbone position j
-        min_col_ind = min(min_col_ind, j)
-        max_col_ind = max(max_col_ind, j)
-    # print(weights)
-
-    backtrace = [[0 for _j in range(backbone_length + 1)] for _i in range(seq_len + 1)]
-    for i in range(0, seq_len + 1):
-        for j in range(min_col_ind, max_col_ind + 2):
-            if i == 0 or j == min_col_ind:
-                alignment_graph[i][j] = 0   # on the edge of the alignment graph
-                continue
-            cur_max = 0; cur_bt = 0
-            w = weights.get((i-1, j-1), 0)
-            values = [alignment_graph[i-1][j-1] + w,
-                      alignment_graph[i-1][j],
-                      alignment_graph[i][j-1]]
-            for _ind, val in enumerate(values):
-                if _ind == 0 and w <= 0:
-                    cur_bt = 1    # in the case position i-1 in query is not mapped to j-1 in backbone, prefer going "upward"
-                    continue
-                if val > cur_max:
-                    cur_max = val
-                    cur_bt = _ind
-            alignment_graph[i][j] = cur_max
-            backtrace[i][j] = cur_bt
-    return backtrace, min_col_ind, max_col_ind
-
-'''
-Get combined aligned query sequence from backtrace
-'''
-def getCombinedSequence(seq, seq_len, backtrace, min_col_ind, max_col_ind):
-    # retrieve results from backtrace
-    result = []; i, j = seq_len, max_col_ind + 1
-    while i > 0 and j > min_col_ind:
-        bt = backtrace[i][j]
-        if bt == 0:
-            result.append(seq[i-1].upper())
-            i -= 1; j -= 1
-        elif bt == 1:
-            # query "insertion", lowercase
-            result.append(seq[i-1].lower())
-            i -= 1
-        elif bt == 2:
-            # query "deletion", gap
-            result.append('-')
-            j -= 1
-        else:
-            raise ValueError
-    while i > 0:
-        result.append(seq[i-1].lower()); i -= 1
-    while j > min_col_ind:
-        result.append('-'); j -= 1
-
-    # reverse result to be in correct order
-    result = result[::-1]
-
-    # append '-' to start and end of results to fill up the alignment
-    result = ['-'] * min_col_ind + result + ['-'] * (backbone_length - max_col_ind - 1)
-
-    # result
-    combined = compressInsertions(''.join(result))
-    return combined
+#'''
+#Get combined aligned query sequence from backtrace
+#'''
+#def getCombinedSequence(seq, seq_len, backtrace, min_col_ind, max_col_ind):
+#    # retrieve results from backtrace
+#    result = []; i, j = seq_len, max_col_ind + 1
+#    while i > 0 and j > min_col_ind:
+#        bt = backtrace[i][j]
+#        if bt == 0:
+#            result.append(seq[i-1].upper())
+#            i -= 1; j -= 1
+#        elif bt == 1:
+#            # query "insertion", lowercase
+#            result.append(seq[i-1].lower())
+#            i -= 1
+#        elif bt == 2:
+#            # query "deletion", gap
+#            result.append('-')
+#            j -= 1
+#        else:
+#            raise ValueError
+#    while i > 0:
+#        result.append(seq[i-1].lower()); i -= 1
+#    while j > min_col_ind:
+#        result.append('-'); j -= 1
+#
+#    # reverse result to be in correct order
+#    result = result[::-1]
+#
+#    # append '-' to start and end of results to fill up the alignment
+#    result = ['-'] * min_col_ind + result + ['-'] * (backbone_length - max_col_ind - 1)
+#
+#    # result
+#    combined = compressInsertions(''.join(result))
+#    return combined
 
 '''
 Convert combined sequence to an Extended Alignment object

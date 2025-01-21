@@ -8,6 +8,7 @@ from os.path import expanduser,isfile
 import random
 import statistics
 import copy
+import gzip
 
 # store bracket open/close for convenience in label parsing
 BRACKET = {
@@ -785,9 +786,9 @@ def write_tree_newick_edge_tokens(tree, filename, hide_rooted_prefix=False):
         if treestr.startswith('[&R]'):
             treestr = treestr[4:].strip()
     else:
-        warn("Specified hide_rooted_prefix, but tree was not rooted")
+        raise Warning("Specified hide_rooted_prefix, but tree was not rooted")
     if filename.lower().endswith('.gz'): # gzipped file
-        f = gopen(expanduser(filename),'wb',9); f.write(treestr.encode()); f.close()
+        f = gzip.open(expanduser(filename),'wb',9); f.write(treestr.encode()); f.close()
     else: # plain-text file
         f = open(expanduser(filename),'w'); f.write(treestr); f.close()
 
@@ -808,7 +809,7 @@ def read_tree_newick_edge_tokens(newick):
         except:
             raise TypeError("newick must be a str")
     if newick.lower().endswith('.gz'): # gzipped file
-        f = gopen(expanduser(newick)); ts = f.read().decode().strip(); f.close()
+        f = gzip.open(expanduser(newick)); ts = f.read().decode().strip(); f.close()
     elif isfile(expanduser(newick)): # plain-text file
         f = open(expanduser(newick)); ts = f.read().strip(); f.close()
     else:
@@ -825,7 +826,7 @@ def read_tree_newick_edge_tokens(newick):
             # end of Newick string
             if ts[i] == ';':
                 if i != len(ts)-1 or n != t.root:
-                    raise RuntimeError(INVALID_NEWICK)
+                    raise RuntimeError("Invalid newick file!")
 
             # go to new child
             elif ts[i] == '(':
