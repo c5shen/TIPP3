@@ -11,6 +11,7 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
+* 1.21.2025 - 
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
@@ -22,7 +23,6 @@ TODO list
 ---------
 * 1.20.2025 - Add a script for downloading the latest reference package to a
   user specified directory.
-* 12.11.2024 - Working on a PyPI installation for TIPP3.
 
 Method Overview
 ---------------
@@ -76,16 +76,20 @@ TIPP3 includes and uses:
 #. `pplacer <https://github.com/matsen/pplacer>`__ (v1.1.alpha19).
 #. `Batch-SCAMPP <https://github.com/ewedell/BSCAMPP>`__ (v1.0.0).
 
+Installation
+------------
+TIPP3 was tested on **Python 3.8 to 3.11**.
+
+There are two ways to install and use TIPP3: with PyPI (``pip install``) or
+directly with this GitHub repository. If you have any difficulties installing
+or running TIPP3, please contact Chengze Shen (chengze5@illinois.edu).
+
 External Requirements
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 **BLAST** is a hard requirement to run TIPP3. The software will automatically
 look for ``blastn`` in the ``$PATH`` environment variable.
 If you have not installed BLAST, you can find the latest version from
 `<https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/>`__. 
-
-Installation
-------------
-TODO
 
 Install with PyPI (``pip``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,7 +97,6 @@ TODO
 
 Install from source files
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-TODO
 
 Requirements
 ++++++++++++
@@ -126,7 +129,7 @@ Installation Steps
    #    Running TIPP3 for the first time will also create the main config
    #    file at "~/.tipp3/main.config", which stores the default behavior
    #    for running TIPP3 (including all binary executable paths)
-   python3 tipp3.py [-h]    # OR tipp3-accurate [-h] OR tipp3-fast [-h]
+   python3 tipp3.py [-h]
 
 ``main.config``
 ~~~~~~~~~~~~~~~
@@ -154,6 +157,12 @@ below for how to customize the TIPP3 pipeline.
 
    # (Optional) change the logging level to DEBUG for more verbose logging
    export TIPP_LOGGING_LEVEL=debug
+
+   # TIPP3 supports the following formats for "-i [query reads]"
+   # XXX.fasta[.gz, .gzip]
+   # XXX.fa[.gz, .gzip]
+   # XXX.fastq[.gz, .gzip]
+   # XXX.fq[.gz, .gzip]
 
    python3 tipp3.py -r [reference package path] -i [query reads] -d [output directory]
 

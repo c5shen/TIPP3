@@ -1,5 +1,5 @@
 include README.rst
-include CHANGELOG
+include CHANGELOG.rst
 include tipp3.py
 include tipp3/default.config
 include requirements.txt

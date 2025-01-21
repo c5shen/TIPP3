@@ -217,30 +217,41 @@ class BlastnJob(Job):
         # if .fasta.gz suffix, then use the file as stdin 
         name_parts = self.query_path.split('.')
         suffix = name_parts[-1]
+
+        cmd = []
+
+        # normal input type, skip to last
         if suffix in ['fa', 'fasta']:
-            cmd = [self.path, '-db', self.database_path,
-                    '-outfmt', str(self.outfmt),
-                    '-query', self.query_path,
-                    '-out', self.outpath,
-                    '-num_threads', str(self.num_threads)]
+            pass
+        # awk to process fq and fastq files as input
+        elif suffix in ['fq', 'fastq']:
+            cmd.extend(['awk',
+                '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'',
+                '|'])
+        # gzip to process gzip and gz files as input
         elif suffix in ['gz', 'gzip']: 
-            cmd = ['gzip', '-dc', self.query_path, '|']
+            cmd.extend(['gzip', '-dc', self.query_path, '|'])
             # check if this is fasta/fa gzip or fastq/fq gzip
             if len(name_parts) > 2:
                 suffix2 = name_parts[-2]
 
+            # if we have another layer of fastq/fq to deal with, extend
+            # the cmd to deal with that
             if suffix2 in ['fastq', 'fq']:
                 cmd.extend(['awk',
-                    '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'', '|'])
-            cmd.extend([
-                    self.path, '-db', self.database_path,
-                    '-outfmt', str(self.outfmt),
-                    '-query', '-',
-                    '-out', self.outpath,
-                    '-num_threads', str(self.num_threads)])
+                    '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'',
+                    '|'])
+        # will raise ValueError when run, due to not having a recognizable
+        # input type
         else:
-            # will raise ValueError when run
-            cmd = []
+            return [], self.outpath
+        
+        # default behavior for BLAST
+        cmd.extend([self.path, '-db', self.database_path,
+                '-outfmt', str(self.outfmt),
+                '-query', '-',
+                '-out', self.outpath,
+                '-num_threads', str(self.num_threads)])
         return cmd, self.outpath
 
 '''

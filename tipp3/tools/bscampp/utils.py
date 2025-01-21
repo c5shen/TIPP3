@@ -772,25 +772,25 @@ def newick_edge_tokens_node(node):
             node_to_str[node] = ''.join(out)
     return node_to_str[node]
 
-def write_tree_newick_edge_tokens(tree, filename, hide_rooted_prefix=False):
-    '''
-    Modified from treeswift tree.write_tree_newick()
-    Write this ``Tree`` to a Newick file
-       Args:
-        ``filename`` (``str``): Path to desired output file (plain-text or gzipped)
-    '''
-    if not isinstance(filename, str):
-        raise TypeError("filename must be a str")
-    treestr = newick_edge_nbr_string(tree)
-    if hide_rooted_prefix:
-        if treestr.startswith('[&R]'):
-            treestr = treestr[4:].strip()
-    else:
-        raise Warning("Specified hide_rooted_prefix, but tree was not rooted")
-    if filename.lower().endswith('.gz'): # gzipped file
-        f = gzip.open(expanduser(filename),'wb',9); f.write(treestr.encode()); f.close()
-    else: # plain-text file
-        f = open(expanduser(filename),'w'); f.write(treestr); f.close()
+#def write_tree_newick_edge_tokens(tree, filename, hide_rooted_prefix=False):
+#    '''
+#    Modified from treeswift tree.write_tree_newick()
+#    Write this ``Tree`` to a Newick file
+#       Args:
+#        ``filename`` (``str``): Path to desired output file (plain-text or gzipped)
+#    '''
+#    if not isinstance(filename, str):
+#        raise TypeError("filename must be a str")
+#    treestr = newick_edge_nbr_string(tree)
+#    if hide_rooted_prefix:
+#        if treestr.startswith('[&R]'):
+#            treestr = treestr[4:].strip()
+#    else:
+#        raise Warning("Specified hide_rooted_prefix, but tree was not rooted")
+#    if filename.lower().endswith('.gz'): # gzipped file
+#        f = gzip.open(expanduser(filename),'wb',9); f.write(treestr.encode()); f.close()
+#    else: # plain-text file
+#        f = open(expanduser(filename),'w'); f.write(treestr); f.close()
 
 def read_tree_newick_edge_tokens(newick):
     '''
