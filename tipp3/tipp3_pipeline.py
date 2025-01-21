@@ -55,7 +55,6 @@ def tipp3_pipeline(*args, **kwargs):
         tipp3_stop(s1)
 
     # (3) read placement to corresponding marker gene taxonomic trees
-    print(query_alignment_paths)
     query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
 
     # (4) collect results and abundance profile

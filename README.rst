@@ -147,7 +147,7 @@ highest priority and will override both config files, if any parameters overlap.
 Usage
 -----
 The general command to run TIPP3 is listed below. By default, TIPP3-fast is run,
-which is significantly faster than the more accurate TIPP3 mode. See examples
+which is significantly faster than the more accurate TIPP3 mode. See `Examples`_
 below for how to customize the TIPP3 pipeline.
 
 .. code:: bash
