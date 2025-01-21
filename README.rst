@@ -222,4 +222,4 @@ placement. Keep all temporary files.
 
 .. |CHANGELOG| image:: https://img.shields.io/badge/CHANGELOG-gray?style=flat
    :alt: Static Badge
-   :target: CHANGELOG
+   :target: CHANGELOG.rst
