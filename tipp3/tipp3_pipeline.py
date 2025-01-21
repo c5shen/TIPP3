@@ -9,7 +9,7 @@ from tipp3.query_binning import queryBinning
 from tipp3.query_alignment import queryAlignment
 from tipp3.query_placement import queryPlacement
 from tipp3.query_abundance import queryAbundance 
-from tipp3.helpers.general_tools import tqdm_styles 
+from tipp3.helpers.general_tools import *
 
 from multiprocessing import Lock, Manager
 from concurrent.futures import ProcessPoolExecutor
@@ -22,6 +22,18 @@ character_map = {'A': 'T', 'a': 't', 'C': 'G', 'c': 'g', 'T': 'A',
 levels = ["species", "genus", "family", "order",
             "class", "phylum", "superkingdom"]
 
+'''
+Preset mode to run TIPP3
+'''
+def run_tipp3():
+    tipp3_pipeline(mode='tipp3')
+
+'''
+Preset mode to run TIPP3-fast
+'''
+def run_tipp3_fast():
+    tipp3_pipeline(mode='tipp3-fast')
+
 # Main pipeline of TIPP3
 def tipp3_pipeline(*args, **kwargs):
     s1 = time.time()
@@ -29,7 +41,7 @@ def tipp3_pipeline(*args, **kwargs):
     lock = m.Lock()
 
     # (pre) parse arguments and build configurations
-    parser, cmdline_args = parseArguments()
+    parser, cmdline_args = parseArguments(mode=kwargs.get('mode', None))
 
     # initialize ProcessPoolExecutor
     _LOG.warning('Initializing ProcessorPoolExecutor instance...')
@@ -94,9 +106,9 @@ def initiate_pool(parser, cmdline_args):
 '''
 parse argument and populate Configs
 '''
-def parseArguments():
+def parseArguments(mode=None):
     global _root_dir, main_config_path
-    parser = _init_parser()
+    parser = _init_parser(mode)
     cmdline_args = sys.argv[1:]
 
     buildConfigs(parser, cmdline_args)
@@ -112,7 +124,7 @@ def parseArguments():
 '''
 initialize parser to read user inputs
 '''
-def _init_parser():
+def _init_parser(mode=None):
     # example usages
     example_usages = '''Example usages:
 > TIPP3 default behavior
@@ -124,14 +136,19 @@ def _init_parser():
     %(prog)s -r refpkg_dir/ -i queries.fasta[.gz] --alignment-method blast --placement-method bscampp
 '''
 
+    # determine which mode we have by default (default to tipp3-fast)
+    _mode = 'tipp3-fast'
+    if mode is not None:
+        _mode = mode
+
     parser = ArgumentParser(
             description=(
                 "This program runs TIPP3, a taxonomic identification "
                 "and abundance profiling tool for metagenomic reads. "),
             conflict_handler='resolve',
             epilog=example_usages,
-            formatter_class=RawDescriptionHelpFormatter)
-            #formatter_class=SmartHelpFormatter)
+            #formatter_class=RawDescriptionHelpFormatter)
+            formatter_class=SmartHelpFormatter)
     parser.add_argument('-v', '--version', action='version',
         version="%(prog)s " + __version__)
 
@@ -157,16 +174,25 @@ def _init_parser():
     basic_group.add_argument('--refpkg-version',
         type=str, help='Version of the refpkg. [default: markers-v4]',
         default='markers-v4', required=False)
+    basic_group.add_argument('--mode',
+        type=str, choices=['tipp3', 'tipp3-fast'], default=mode,
+        help=' '.join(['Preset mode for running TIPP3.', f'[default: {_mode}]',
+            '\n\"tipp3\": the most accurate setting, with WITCH alignment',
+            'and pplacer placement.',
+            '\n\"tipp3-fast\": the fastest setting, with BLAST alignment',
+            'and Batch-SCAMPP placement.',
+            'The mode will be overridden by parameters --alignment-method',
+            'and --placement-method.']), required=False)
     basic_group.add_argument('--alignment-method',
-        type=str, choices=['witch', 'blast', 'hmm'], default='witch',
+        type=str, choices=['witch', 'blast', 'hmm'], default=None,
         help=' '.join(['Alignment method to use for aligning reads',
-            'to marker genes. [default: witch]']),
+            'to marker genes. [default: using --mode]']),
         required=False)
     basic_group.add_argument('--placement-method',
-        type=str, choices=['pplacer-taxtastic', 'bscampp'],
+        type=str, choices=['pplacer-taxtastic', 'bscampp'], default=None,
         help=' '.join(['Placement method to use for placing aligned reads',
-            'to marker gene taxonomic trees. [default: pplacer-taxtastic']),
-        default='pplacer-taxtastic', required=False)
+            'to marker gene taxonomic trees. [default: using --mode']),
+        required=False)
     basic_group.add_argument('-c', '--config-file',
         type=str, help='Path to a user-defined config file. [default: None]',
         required=False, default=None)

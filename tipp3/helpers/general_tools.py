@@ -16,7 +16,12 @@ def memoryUsage():
     return mem
 
 # reformat argparse help text formatting
-class SmartHelpFormatter(argparse.HelpFormatter):
+class SmartHelpFormatter(argparse.RawDescriptionHelpFormatter):
+    def add_text(self, text):
+        if text is not None:
+            text = text.replace("\\n", "\n").replace("\\t", "\t")
+            print(text)
+        super().add_text(text)
     def _split_lines(self, text, width):
         if '\n' in text:
             temp = text.split('\n')

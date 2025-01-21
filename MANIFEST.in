@@ -1,0 +1,9 @@
+include README.rst
+include CHANGELOG
+include tipp3.py
+include tipp3/default.config
+include requirements.txt
+graft tipp3/tools/
+graft tipp3/helpers/
+prune */__pycache__
+global-exclude *.py[cod]

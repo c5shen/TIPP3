@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["tipp3", "tipp3.helpers", "tipp3.tools"]
+#script-files = ["bin/tipp3", "bin/tipp3-fast", "tipp3.py"]
+
+[project]
+name = "tipp3"
+dynamic = ["version", "dependencies"]
+description = "TIPP3 - A Phylogeney-Based Abundance Profiling Tool"
+readme = {file = "README.rst", content-type = "text/x-rst"}
+authors = [
+        {name = "Chengze Shen", email = "chengze5@illinois.edu"}
+        ]
+license = {file = "LICENSE"}
+requires-python = ">=3.7"
+classifiers = [
+        "Development Status :: 4 - Beta",
+        "Operating System :: OS Independent",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "Topic :: Software Development",
+        "License :: OSI Approved :: GNU General Public License (GPL)",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12"
+        ]
+
+[project.scripts]
+tipp3 = "tipp3.tipp3_pipeline:run_tipp3"
+tipp3-fast = "tipp3.tipp3_pipeline:run_tipp3_fast"
+"tipp3.py" = "tipp3.tipp3_pipeline:tipp3_pipeline"
+
+[project.urls]
+Homepage = "https://github.com/c5shen/TIPP3"
+Changelog = "https://github.com/c5shen/TIPP3/CHANGELOG"
+
+#[tool.setuptools.packages.find]
+#where = ["tipp3/tools"]
+
+[tool.setuptools.dynamic]
+version = {attr = "tipp3.__init__.__version__"}
+dependencies = {file = ["requirements.txt"]}
+

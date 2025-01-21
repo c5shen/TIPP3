@@ -47,6 +47,7 @@ class Configs:
 
     # choices of parameters
     # default to TIPP3-fast
+    mode = 'tipp3-fast'
     alignment_method = 'blast'  # or blast
     placement_method = 'bscampp'  # or other method
 
@@ -214,9 +215,20 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     Configs.alignment_only = args.alignment_only
     Configs.keeptemp = args.keeptemp
 
+    # set up preset mode, TIPP3 or TIPP3-fast
+    Configs.mode = args.mode
+    if args.mode == 'tipp3-fast':
+        Configs.alignment_method = 'blast'
+        Configs.placement_method = 'bscampp'
+    elif args.mode == 'tipp3':
+        Configs.alignment_method = 'witch'
+        Configs.placement_method = 'pplacer-taxtastic'
+
     # alignment_method and placement_method, and refpkg version
-    Configs.alignment_method = args.alignment_method
-    Configs.placement_method = args.placement_method
+    if args.alignment_method:
+        Configs.alignment_method = args.alignment_method
+    if args.placement_method:
+        Configs.placement_method = args.placement_method
     Configs.refpkg_version = args.refpkg_version
 
     if args.num_cpus > 0:
