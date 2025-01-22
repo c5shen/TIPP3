@@ -12,8 +12,8 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 News
 ----
 * 1.21.2025 - Fixed PyPI installation issue that fails to find the installed
-  TIPP3 package (changed installed the binary executable name to
-  ``run_tipp3.py``).
+  TIPP3 package (changed the installed binary executable name from ``tipp3.py``
+  to ``run_tipp3.py``).
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
