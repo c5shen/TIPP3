@@ -1,4 +1,17 @@
-TIPP3 0.1b
+TIPP3 v0.1b1
+------------
+#. Fixed bug in code that prevented BLASTN from reading in fasta/fa files
+   correcty.
+#. Added new output file ``query_classifications.tsv`` that aggregates all
+   mapped query reads with their taxonomic identifications.
+#. For the item above, also changed the query read name by adding in the region
+   they are mapped with. E.g., query read ``XXXXX`` maps to two marker genes
+   from positions 0-150 and positions 600-900, then it will have two entries
+   in the ``query_classifications.tsv`` file, named as ``XXXXX-0-150`` and 
+   ``XXXXX-600-900``.
+#. Included other minor bug fixes and code updates. 
+
+TIPP3 v0.1b
 ----------
 #. Included other minor bug fixes.
 #. Changed the default file name from ``tipp3.py`` to ``run_tipp3.py`` to avoid
@@ -9,7 +22,7 @@ TIPP3 0.1b
    ``tipp3-accurate`` (for most accurate settings of TIPP3), and
    ``tipp3`` (for fastest settings of TIPP3).
 
-TIPP3 0.1a
+TIPP3 v0.1a
 -----------
 #. Working on an installation for PyPI, almost done.
 #. Support ``.fasta, .fa, .fastq, .fq`` files as inputs. Also support them in gzipped format (e.g., ``.fasta.gz or .fasta.gzip``)

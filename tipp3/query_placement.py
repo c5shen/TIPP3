@@ -26,6 +26,11 @@ def queryPlacement(refpkg, query_alignment_paths):
         pass
     _LOG.info("(From main.config) parameter options for " \
             f"{Configs.placement_method}: {additional_kwargs}")
+
+    # failsafe when no alignments are given
+    if len(query_alignment_paths) == 0:
+        _LOG.warning("No alignments are given for placements, returning...")
+        return query_placement_paths
     
     # removing temporary files that we do not care
     temp_folders = ['tmp0']

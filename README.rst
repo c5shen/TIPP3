@@ -11,23 +11,9 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
-* 1.21.2025 - Fixed PyPI installation issue that fails to find the installed
-  TIPP3 package (changed the installed binary executable name from ``tipp3.py``
-  to ``run_tipp3.py``).
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
-* 12.17.2024 - TIPP3 now can handle both fasta (``.fasta`` or ``.fa``)
-  and fastq (``.fastq`` or ``.fq``) files as inputs, and they can be in
-  gzip format (e.g., ``queries.fasta.gz`` or ``queries.fq.gz``).
-
-TODO list
----------
-* 1.21.2025 - Add a script for downloading the latest reference package to a
-  user specified directory, and record the directory to
-  ``~/.tipp3/refpkg.config``. When the user did not specify a reference package
-  in the command line, TIPP3 should automatically find the previously installed
-  refpkg and the corresponding version number.
 
 Method Overview
 ---------------
@@ -229,6 +215,15 @@ Scenario 3
 ++++++++++
 (TIPP3) Use WITCH for query alignment, and ``pplacer-taxtastic`` for query
 placement. Keep all temporary files.
+
+TODO list
+---------
+* 1.21.2025 - Add a script for downloading the latest reference package to a
+  user specified directory, and record the directory to
+  ``~/.tipp3/refpkg.config``. When the user did not specify a reference package
+  in the command line, TIPP3 should automatically find the previously installed
+  refpkg and the corresponding version number.
+
 
 .. code:: bash
 

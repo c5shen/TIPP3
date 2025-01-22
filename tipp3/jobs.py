@@ -220,9 +220,13 @@ class BlastnJob(Job):
 
         cmd = []
 
-        # normal input type, skip to last
+        # normal input type with fasta/fa files
         if suffix in ['fa', 'fasta']:
-            pass
+            cmd = [self.path, '-db', self.database_path,
+                    '-outfmt', str(self.outfmt),
+                    '-query', self.query_path,
+                    '-out', self.outpath,
+                    '-num_threads', str(self.num_threads)]
         # awk to process fq and fastq files as input
         elif suffix in ['fq', 'fastq']:
             cmd.extend(['awk',
@@ -241,17 +245,18 @@ class BlastnJob(Job):
                 cmd.extend(['awk',
                     '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'',
                     '|'])
+
+            # piped query will go in to BLAST as stdin
+            cmd.extend([self.path, '-db', self.database_path,
+                    '-outfmt', str(self.outfmt),
+                    '-query', '-',
+                    '-out', self.outpath,
+                    '-num_threads', str(self.num_threads)])
         # will raise ValueError when run, due to not having a recognizable
         # input type
         else:
             return [], self.outpath
         
-        # default behavior for BLAST
-        cmd.extend([self.path, '-db', self.database_path,
-                '-outfmt', str(self.outfmt),
-                '-query', '-',
-                '-out', self.outpath,
-                '-num_threads', str(self.num_threads)])
         return cmd, self.outpath
 
 '''

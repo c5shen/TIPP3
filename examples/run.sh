@@ -15,7 +15,8 @@ inpath=data/illumina.small.queries.fasta
 t=16
 
 # NOTICE: supplement your own path of refpkg here
-refpkg=$HOME/Desktop/Research/phd_project/tipp3/tipp3-refpkg/
+#refpkg=$HOME/Desktop/Research/phd_project/tipp3/tipp3-refpkg/
+refpkg=$HOME/tallis/tipp3/tipp3-refpkg/
 
 scenario=1
 if [[ $1 != "" ]]; then

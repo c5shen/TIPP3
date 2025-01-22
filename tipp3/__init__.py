@@ -21,11 +21,11 @@ import logging
 import os
 
 '''
-Updated @ 9.22.2024 by Chengze Shen
+Updated @ 1.22.2025 by Chengze Shen
 
 Major changes to suit TIPP3 pipeline.
 '''
-__version__ = "0.1b"
+__version__ = "0.1b1"
 _INSTALL_PATH = __path__[0]
 
 __all__ = ['read_binning', 'read_alignment', 'read_placement',

@@ -23,6 +23,13 @@ def queryAbundance(refpkg, query_placement_paths, pool, lock):
     # (1) obtain classification
     _LOG.info("Obtaining read classification from each marker gene")
     classification_paths = {} 
+
+    # failsafe when no placement file are given
+    if len(query_placement_paths) == 0:
+        _LOG.warning("No placements are found for classification or " \
+                "abundance profile, returning...")
+        return
+
     futures = []
     for marker, query_placement_path in query_placement_paths.items():
         clas_outdir = os.path.join(Configs.outdir, 'query_classifications',
@@ -75,7 +82,22 @@ def queryAbundance(refpkg, query_placement_paths, pool, lock):
         filterClassification(taxonomy_path,
                 classification_path, filtered_path, float(support_value))
         filtered_paths[marker] = filtered_path
-    
+
+    # Updated @ 1.22.2025 - Chengze Shen
+    #   - aggregate all classifications and output to a file as well
+    # (2.5) aggregate all classifications
+    all_classification_path = os.path.join(Configs.outdir,
+            'query_classifications.tsv')
+    header = False
+    with open(all_classification_path, 'w') as f:
+        for marker, filtered_path in filtered_paths.items():
+            with open(filtered_path, 'r') as fptr:
+                lines = fptr.read().strip().split('\n')
+            if not header:
+                f.write(lines[0] + '\n')
+                header = True
+            f.write('\n'.join(lines[1:]) + '\n')
+
     # (3) aggregate classifications to form an abundance profile
     abundance_profile = getAbundanceProfile(refpkg, filtered_paths)
 

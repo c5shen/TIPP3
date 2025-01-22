@@ -378,7 +378,11 @@ def splitQueries(refpkg, query_aln, query_outdir):
             rev_seq = seq
         
         # write to corresponding marker gene (if using)
-        marker_fptr[smarker].write('>{}\n{}\n'.format(taxon, rev_seq))
+        # Updated @ 1.22.2025 - Chengze Shen
+        #   - written taxon name to include its mapped region
+        #   - in the form {taxon}-qstart-qend
+        marker_fptr[smarker].write('>{}-{}-{}\n{}\n'.format(
+            taxon, qstart, qend, rev_seq))
         info_f.write('{},{},{},{},{},{}\n'.format(taxon, sseqid, smarker,
             qstart, qend, qend - qstart + 1))
 
@@ -394,5 +398,7 @@ def splitQueries(refpkg, query_aln, query_outdir):
             _LOG.debug(f'Removing redundant {marker}: {_outpath}')
             os.remove(_outpath)
             ret.pop(marker)
+
+    _LOG.info(f"Inputs mapped to ({len(ret)}) marker genes: {ret.keys()}")
     return ret
 

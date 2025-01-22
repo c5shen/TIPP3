@@ -113,13 +113,13 @@ def valid_attribute(k, v):
 
 # print a list of all configurations
 def getConfigs():
-    print('\n********** Configurations **********')
-    print('\thome.path: {}'.format(homepath))
-    print('\tmain.config: {}\n'.format(main_config_path))
+    msg = '\n********** Configurations **********\n' + \
+            '\thome.path: {}\n'.format(homepath) + \
+            '\tmain.config: {}\n\n'.format(main_config_path)
     for k, v in Configs.__dict__.items():
         if valid_attribute(k, v):
-            print('\tConfigs.{}: {}'.format(k, v))
-    print('\n')
+            msg += '\tConfigs.{}: {}\n'.format(k, v)
+    print(msg, flush=True)
 
 '''
 Read in from config file if it exists. Any cmd-line provided configs will
@@ -129,8 +129,8 @@ Original functionality comes from SEPP -> sepp/config.py
 '''
 def _read_config_file(filename, cparser, opts,
         child_process=False, expand=None):
-    if not child_process:
-        _LOG.info('Reading config from {}'.format(filename))
+    #if not child_process:
+    #    _LOG.info('Reading config from {}'.format(filename))
     config_defaults = []
 
     with open(filename, 'r') as cfile:
@@ -269,7 +269,7 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
         _LOG.warning('Some software required by TIPP3 do not have valid binaries!')
 
         # trying once for regenerating
-        _LOG.info('Re-initializing the config file for once...')
+        _LOG.warning('Re-initializing the config file for once...')
         init_config_file(homepath, rerun=True)
         buildConfigs(parser, cmdline_args, rerun=True)
     elif not b_valid and rerun:

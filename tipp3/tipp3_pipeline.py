@@ -114,11 +114,11 @@ def parseArguments(mode=None):
     buildConfigs(parser, cmdline_args)
     #_LOG = get_logger(__name__, log_path=Configs.log_path)
 
+    getConfigs()
     _LOG.info('TIPP3 is running with: {}'.format(' '.join(cmdline_args)))
     #if os.path.exists(main_config_path):
     #    _LOG.info('Main configuration loaded from {}'.format(
     #        main_config_path))
-    getConfigs()
     return parser, cmdline_args
 
 '''
