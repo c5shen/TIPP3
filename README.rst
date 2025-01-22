@@ -1,6 +1,6 @@
 TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 ===========================================================
-|CHANGELOG|
+|PyPI version| |Python version| |Build| |License| |CHANGELOG|
   
 :Developer:
     Chengze Shen
@@ -83,7 +83,7 @@ TIPP3 includes and uses:
 
 Installation
 ------------
-TIPP3 was tested on **Python 3.8 to 3.12**.
+TIPP3 was tested on **Python 3.7 to 3.12**.
 
 There are two ways to install and use TIPP3: with PyPI (``pip install``) or
 directly with this GitHub repository. If you have any difficulties installing
@@ -238,6 +238,18 @@ placement. Keep all temporary files.
       -t 16 --keeptemp
 
 
+.. |PyPI version| image:: https://img.shields.io/pypi/v/tipp3
+   :alt: PyPI - Version
+   :target: https://pypi.python.org/pypi/tipp3/
+.. |Python version| image:: https://img.shields.io/pypi/pyversions/tipp3
+   :alt: PyPI - Python Version
+   :target: https://pypi.python.org/pypi/tipp3/
+.. |License| image:: https://img.shields.io/github/license/c5shen/TIPP3
+   :alt: GitHub License
+   :target: https://pypi.python.org/pypi/tipp3/
+.. |Build| image:: https://img.shields.io/github/actions/workflow/status/c5shen/TIPP3/python-package.yml
+   :alt: GitHub Workflow Status (with event)
+   :target: https://github.com/c5shen/TIPP3
 .. |CHANGELOG| image:: https://img.shields.io/badge/CHANGELOG-gray?style=flat
    :alt: Static Badge
    :target: CHANGELOG.rst
