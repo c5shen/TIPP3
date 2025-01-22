@@ -1,7 +1,7 @@
 TIPP3 v0.1b1
 ------------
-#. Fixed bug in code that prevented BLASTN from reading in fasta/fa files
-   correcty.
+#. Fixed a bug in code that prevented BLASTN from reading in fasta/fa files
+   correctly.
 #. Added new output file ``query_classifications.tsv`` that aggregates all
    mapped query reads with their taxonomic identifications.
 #. For the item above, also changed the query read name by adding in the region
