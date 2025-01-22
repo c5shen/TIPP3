@@ -10,7 +10,7 @@ module load python
 time=/usr/bin/time
 
 # example to run TIPP3 with a given refpkg and a set of query reads
-bin=../tipp3.py
+bin=../run_tipp3.py
 inpath=data/illumina.small.queries.fasta
 t=16
 

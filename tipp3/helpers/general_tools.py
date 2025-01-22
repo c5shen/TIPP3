@@ -20,7 +20,6 @@ class SmartHelpFormatter(argparse.RawDescriptionHelpFormatter):
     def add_text(self, text):
         if text is not None:
             text = text.replace("\\n", "\n").replace("\\t", "\t")
-            print(text)
         super().add_text(text)
     def _split_lines(self, text, width):
         if '\n' in text:

@@ -11,7 +11,9 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
-* 1.21.2025 - 
+* 1.21.2025 - Fixed PyPI installation issue that fails to find the installed
+  TIPP3 package (changed installed the binary executable name to
+  ``run_tipp3.py``).
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
@@ -21,8 +23,11 @@ News
 
 TODO list
 ---------
-* 1.20.2025 - Add a script for downloading the latest reference package to a
-  user specified directory.
+* 1.21.2025 - Add a script for downloading the latest reference package to a
+  user specified directory, and record the directory to
+  ``~/.tipp3/refpkg.config``. When the user did not specify a reference package
+  in the command line, TIPP3 should automatically find the previously installed
+  refpkg and the corresponding version number.
 
 Method Overview
 ---------------
@@ -93,7 +98,20 @@ If you have not installed BLAST, you can find the latest version from
 
 Install with PyPI (``pip``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-TODO
+The easiest way to install TIPP3 is to use the PyPI distribution.
+
+.. code:: bash
+
+   # 1. Install with pip (--user if no root access)
+   pip install tipp3 [--user]
+
+   # 2. Three binary executables will be installed. The first time running
+   #    any of the binaries will create the TIPP3 config file at
+   #    ~/.tipp3/main.config
+   tipp3 [-h]           # (recommended) running preset "TIPP3-fast", or
+   tipp3-accurate [-h]  # running preset "TIPP3", or
+   run_tipp3.py [-h]
+
 
 Install from source files
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,12 +142,12 @@ Installation Steps
    # 2. Install all requirements
    pip3 install -r requirements.txt
 
-   # 3. Execute tipp3.py executable for the first time with "-h" to see
+   # 3. Execute run_tipp3.py executable for the first time with "-h" to see
    #    allowed commandline parameters and example usages
    #    Running TIPP3 for the first time will also create the main config
    #    file at "~/.tipp3/main.config", which stores the default behavior
    #    for running TIPP3 (including all binary executable paths)
-   python3 tipp3.py [-h]
+   python3 run_tipp3.py [-h]
 
 ``main.config``
 ~~~~~~~~~~~~~~~
@@ -143,7 +161,7 @@ user-specified config file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 In addition, a user can specify a customized config file with ``-c`` or
 ``--config-file`` parameter option when running TIPP3 (e.g.,
-``tipp3.py -c user.config``). The ``user.config`` file will override settings
+``run_tipp3.py -c user.config``). The ``user.config`` file will override settings
 from ``main.config`` (if overlaps). Command-line arguments still have the
 highest priority and will override both config files, if any parameters overlap.
 
@@ -164,7 +182,7 @@ below for how to customize the TIPP3 pipeline.
    # XXX.fastq[.gz, .gzip]
    # XXX.fq[.gz, .gzip]
 
-   python3 tipp3.py -r [reference package path] -i [query reads] -d [output directory]
+   python3 run_tipp3.py -r [reference package path] -i [query reads] -d [output directory]
 
 
 Examples
@@ -175,7 +193,7 @@ running:
 
 .. code:: bash
 
-   python3 tipp3.py -h
+   python3 run_tipp3.py -h
 
 
 All of the following examples can be found in the **examples/run.sh** bash
@@ -190,7 +208,7 @@ query placement. Keep all temporary files during the run.
 
 .. code:: bash
 
-   python3 tipp3.py -i examples/illumina.small.queries.fasta \
+   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method blast --placement-method bscampp \
       -t 16 --keeptemp
@@ -202,7 +220,7 @@ query placement (``pplacer-taxtastic``). Keep all temporary files.
 
 .. code:: bash
 
-   python3 tipp3.py -i examples/illumina.small.queries.fasta \
+   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method blast --placement-method pplacer-taxtastic \
       -t 16 --keeptemp
@@ -214,7 +232,7 @@ placement. Keep all temporary files.
 
 .. code:: bash
 
-   python3 tipp3.py -i examples/illumina.small.queries.fasta \
+   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method witch --placement-method pplacer-taxtastic \
       -t 16 --keeptemp
