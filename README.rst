@@ -190,31 +190,38 @@ data used is a small set of Illumina short reads denoted as
 Scenario 1
 ++++++++++
 (TIPP3-fast) Use BLAST for query alignment, and Batch-SCAMPP (``bscampp``) for
-query placement. Keep all temporary files during the run.
+query placement.
 
 .. code:: bash
 
    python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method blast --placement-method bscampp \
-      -t 16 --keeptemp
+      -t 16
 
 Scenario 2
 ++++++++++
 Use BLAST for query alignment, and pplacer with the taxtastic package for
-query placement (``pplacer-taxtastic``). Keep all temporary files. 
+query placement (``pplacer-taxtastic``). 
 
 .. code:: bash
 
    python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method blast --placement-method pplacer-taxtastic \
-      -t 16 --keeptemp
+      -t 16
 
 Scenario 3
 ++++++++++
 (TIPP3) Use WITCH for query alignment, and ``pplacer-taxtastic`` for query
-placement. Keep all temporary files.
+placement. Keep all temporary files during the run.
+
+.. code:: bash
+
+   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
+      --reference-package [reference package dir] --outdir tipp3_scenario1 \
+      --alignment-method witch --placement-method pplacer-taxtastic \
+      -t 16 --keeptemp
 
 TODO list
 ---------
@@ -223,14 +230,6 @@ TODO list
   ``~/.tipp3/refpkg.config``. When the user did not specify a reference package
   in the command line, TIPP3 should automatically find the previously installed
   refpkg and the corresponding version number.
-
-
-.. code:: bash
-
-   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
-      --reference-package [reference package dir] --outdir tipp3_scenario1 \
-      --alignment-method witch --placement-method pplacer-taxtastic \
-      -t 16 --keeptemp
 
 
 .. |PyPI version| image:: https://img.shields.io/pypi/v/tipp3

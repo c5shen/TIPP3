@@ -50,10 +50,6 @@ def queryAbundance(refpkg, query_placement_paths, pool, lock):
         futures.append(pool.submit(getClassification, marker, taxonomy_path,
             mapping_path, query_placement_path, reordered_placement_path,
             clas_outdir, classification_path, lock))
-        #marker, classification_path = getClassification(marker, taxonomy_path,
-        #    mapping_path, query_placement_path, reordered_placement_path,
-        #    clas_outdir, classification_path, lock)
-        #classification_paths[marker] = classification_path
 
     for future in concurrent.futures.as_completed(futures):
         marker, classification_path = future.result()
@@ -119,8 +115,7 @@ def getAbundanceProfile(refpkg, filtered_paths):
 
     # aggregating results from all markers
     for marker, filtered_path in filtered_paths.items():
-        updateAbundanceProfile(taxid_map, filtered_path,
-                abundance_profile)
+        updateAbundanceProfile(filtered_path, abundance_profile)
 
     # compute percentage at each rank
     _LOG.info("Writing abundance profiles at each taxonomic level to "
@@ -150,7 +145,7 @@ Function to update a given abundance profile with the new results
 read from the given inpath.
 NOTE: updates are "counts", proportions will be calculated later
 '''
-def updateAbundanceProfile(taxid_map, inpath, abundance_profile):
+def updateAbundanceProfile(inpath, abundance_profile):
     global ranks
     with open(inpath, 'r') as f:
         lines = f.read().strip().split('\n')

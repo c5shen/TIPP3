@@ -31,8 +31,10 @@ def queryAlignment(refpkg, query_paths):
     # removing temporary files that we do not care
     temp_files = ['est.aln.fasta', 'tree_decomp', 'debug.txt']
 
+    idx = 0; total = len(query_paths)
     for marker, query_path in query_paths.items():
         _LOG.info(f"Aligning query reads for {marker}")
+        idx += 1
         alignment_dir = os.path.join(Configs.outdir, 'query_alignments',
                 marker)
         if not os.path.isdir(alignment_dir):
@@ -97,6 +99,5 @@ def queryAlignment(refpkg, query_paths):
                 os.remove(toremove)
             else:
                 shutil.rmtree(toremove)
-        _LOG.info(f"Finished aligning query reads for {marker}")
-
+        _LOG.info(f"({idx}/{total}) Finished aligning query reads for {marker}")
     return query_alignment_paths

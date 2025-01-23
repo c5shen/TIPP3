@@ -35,9 +35,11 @@ def queryPlacement(refpkg, query_alignment_paths):
     # removing temporary files that we do not care
     temp_folders = ['tmp0']
 
+    idx = 0; total = len(query_alignment_paths) 
     for marker, query_alignment_path in query_alignment_paths.items():
         _LOG.info("Placing aligned query reads for " \
                 f"{marker}") #from {query_alignment_path}")
+        idx += 1
         placement_dir = os.path.join(Configs.outdir, 'query_placements',
                 marker)
         if not os.path.isdir(placement_dir):
@@ -80,5 +82,5 @@ def queryPlacement(refpkg, query_alignment_paths):
             toremove = os.path.join(placement_dir, tf)
             if os.path.exists(toremove):
                 shutil.rmtree(toremove)
-        _LOG.info(f"Finished placing aligned query reads for {marker}")
+        _LOG.info(f"({idx}/{total}) Finished placing aligned query reads for {marker}")
     return query_placement_paths

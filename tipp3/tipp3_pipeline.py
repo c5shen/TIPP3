@@ -53,10 +53,14 @@ def tipp3_pipeline(*args, **kwargs):
 
     # (1) read binning against the TIPP3 refpkg using BLAST
     query_paths, query_alignment_paths = queryBinning(refpkg)
+    s2 = time.time()
+    _LOG.info(f"Runtime for mapping reads to marker genes (seconds): {s2 - s1}") 
 
     # (2) read alignment to corresponding marker genes
     if Configs.alignment_method != 'blast':
         query_alignment_paths = queryAlignment(refpkg, query_paths)
+    s3 = time.time()
+    _LOG.info(f"Runtime for aligning reads to marker genes (seconds): {s3 - s2}") 
 
     # early stop --> alignment-only 
     if Configs.alignment_only:
@@ -68,9 +72,13 @@ def tipp3_pipeline(*args, **kwargs):
 
     # (3) read placement to corresponding marker gene taxonomic trees
     query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
+    s4 = time.time()
+    _LOG.info(f"Runtime for placing reads to marker gene taxonomies (seconds): {s4 - s3}") 
 
     # (4) collect results and abundance profile
     queryAbundance(refpkg, query_placement_paths, pool, lock)
+    s5 = time.time()
+    _LOG.info(f"Runtime for obtaining abundance profile (seconds): {s5 - s4}") 
 
     # close ProcessPoolExecutor
     _LOG.warning('Closing ProcessPoolExecutor instance...')
@@ -81,21 +89,23 @@ def tipp3_pipeline(*args, **kwargs):
     if not Configs.keeptemp:
         _LOG.info("Removing intermediate output files...")
         tipp3_clean_temp()
+        s6 = time.time()
+        _LOG.info(f"Runtime for cleaning temporary files (seconds): {s6 - s5}") 
 
     # stop TIPP3
     tipp3_stop(s1)
 
 def tipp3_clean_temp():
     temp_dirs = ['blast_output', 'query', 'query_alignments',
-            'query_placements']#, 'query_classification']
+            'query_placements']#, 'query_classifications']
     for temp in temp_dirs:
         shutil.rmtree(os.path.join(Configs.outdir, temp))
         _LOG.info(f"Removed {temp}")
 
 def tipp3_stop(start_time):
-    s2 = time.time()
-    _LOG.info('TIPP3 completed in {} seconds...'.format(s2 - start_time))
-    print('TIPP3 completed in {} seconds...'.format(s2 - start_time))
+    send = time.time()
+    _LOG.info('TIPP3 completed in {} seconds...'.format(send - start_time))
+    #print('TIPP3 completed in {} seconds...'.format(s2 - start_time))
 
 '''
 Init function for a queue and get configurations for each worker

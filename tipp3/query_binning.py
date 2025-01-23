@@ -378,11 +378,7 @@ def splitQueries(refpkg, query_aln, query_outdir):
             rev_seq = seq
         
         # write to corresponding marker gene (if using)
-        # Updated @ 1.22.2025 - Chengze Shen
-        #   - written taxon name to include its mapped region
-        #   - in the form {taxon}-qstart-qend
-        marker_fptr[smarker].write('>{}-{}-{}\n{}\n'.format(
-            taxon, qstart, qend, rev_seq))
+        marker_fptr[smarker].write('>{}\n{}\n'.format(taxon, rev_seq))
         info_f.write('{},{},{},{},{},{}\n'.format(taxon, sseqid, smarker,
             qstart, qend, qend - qstart + 1))
 

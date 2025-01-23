@@ -4,11 +4,6 @@ TIPP3 v0.1b1
    correctly.
 #. Added new output file ``query_classifications.tsv`` that aggregates all
    mapped query reads with their taxonomic identifications.
-#. For the item above, also changed the query read name by adding in the region
-   they are mapped with. E.g., query read ``XXXXX`` maps to two marker genes
-   from positions 0-150 and positions 600-900, then it will have two entries
-   in the ``query_classifications.tsv`` file, named as ``XXXXX-0-150`` and 
-   ``XXXXX-600-900``.
 #. Included other minor bug fixes and code updates. 
 
 TIPP3 v0.1b
