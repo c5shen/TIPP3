@@ -396,5 +396,7 @@ def splitQueries(refpkg, query_aln, query_outdir):
             ret.pop(marker)
 
     _LOG.info(f"Inputs mapped to ({len(ret)}) marker genes: {ret.keys()}")
+    _LOG.info("Number of mapped reads (one read may map to " \
+            f"multiple marker genes): {len(query_aln)}")
     return ret
 
