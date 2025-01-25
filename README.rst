@@ -87,7 +87,8 @@ TIPP3 reference package
 At the time, you can download the TIPP3 reference package from
 `<https://databank.illinois.edu/datasets/IDB-4931852>`__, hosted on the
 Illinois Data Bank.
-Once downloaded, unzip the file and please see `Examples`__ for usage.
+Once downloaded, unzip the file and please see `Examples`_ and
+`Usage`_ for referring to the reference package.
 
 Install with PyPI (``pip``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
