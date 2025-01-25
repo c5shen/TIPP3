@@ -93,7 +93,7 @@ Method IDs
 
 #. ``motus``: mOTUsv3 with all reads as input.
 
-Computed evaluation metrics
+Computed Evaluation Metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 All computed evaluation metrics, normalized Hellinger distance and Hellinger
 distance, are included in the ``abundance_profile_combined.csv`` file. The

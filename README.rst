@@ -75,12 +75,19 @@ There are two ways to install and use TIPP3: with PyPI (``pip install``) or
 directly with this GitHub repository. If you have any difficulties installing
 or running TIPP3, please contact Chengze Shen (chengze5@illinois.edu).
 
-External Requirements
+External requirements
 ~~~~~~~~~~~~~~~~~~~~~
 **BLAST** is a hard requirement to run TIPP3. The software will automatically
 look for ``blastn`` in the ``$PATH`` environment variable.
 If you have not installed BLAST, you can find the latest version from
 `<https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/>`__. 
+
+TIPP3 reference package
+~~~~~~~~~~~~~~~~~~~~~~~
+At the time, you can download the TIPP3 reference package from
+`<https://databank.illinois.edu/datasets/IDB-4931852>`__, hosted on the
+Illinois Data Bank.
+Once downloaded, unzip the file and please see `Examples`__ for usage.
 
 Install with PyPI (``pip``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
