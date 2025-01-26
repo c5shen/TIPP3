@@ -233,6 +233,10 @@ placement. Keep all temporary files during the run.
 
 TODO list
 ---------
+* 1.26.2025 - Add a parameter option to allow users to set the support value
+  for abundance profiling. Currently, the support values are empirically set
+  for different placement methods (90% for pplacer-taxtastic and 95% for
+  Batch-SCAMPP).
 * 1.21.2025 - Add a script for downloading the latest reference package to a
   user specified directory, and record the directory to
   ``~/.tipp3/refpkg.config``. When the user did not specify a reference package
