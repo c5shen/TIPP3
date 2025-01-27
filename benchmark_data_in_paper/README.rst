@@ -33,8 +33,8 @@ is as follows::
 Experiment IDs
 ++++++++++++++
 
-.. list-tables::
-   :widths: 40 60
+.. list-table::
+   :widths: 25 75
    :header-rows: 1
 
    * - experiment id
@@ -47,7 +47,7 @@ Experiment IDs
      - mock microbial community with 50 known genomes, Illumina reads.
    * - ``known_metaphlan_exp2``
      - mock microbial community with 25 known genomes, Illumina reads.
-       Designed to compared TIPP3, TIPP3-fast, and MetaPhlAn4.
+       Designed to compare TIPP3, TIPP3-fast, and MetaPhlAn4.
    * - ``known_nanopore_exp2_2``
      - mock microbial community with 50 known genomes, Nanopore reads.
    * - ``known_pacbio_exp2``
@@ -57,7 +57,7 @@ Experiment IDs
        Illumina reads.
    * - ``mixed_metaphlan_exp2_2``
      - mock microbial community with 22 known genomes and 22 novel genomes,
-       Illumina reads. Designed to compared TIPP3, TIPP3-fast, and MetaPhlAn4.
+       Illumina reads. Designed to compare TIPP3, TIPP3-fast, and MetaPhlAn4.
    * - ``mixed_nanopore_exp2_2``
      - mock microbial community with 53 known genomes and 47 novel genomes,
        Nanopore reads.
@@ -68,7 +68,7 @@ Experiment IDs
      - mock microbial community with 50 novel genomes, Illumina reads.
    * - ``novel_metaphlan_exp2_2``
      - mock microbial community with 22 novel genomes, Illumina reads.
-       Designed to compared TIPP3, TIPP3-fast, and MetaPhlAn4.
+       Designed to compare TIPP3, TIPP3-fast, and MetaPhlAn4.
    * - ``novel_nanopore_exp2_2``
      - mock microbial community with 50 novel genomes, Nanopore reads.
    * - ``novel_pacbio_exp2``
@@ -76,25 +76,33 @@ Experiment IDs
 
 Method IDs
 ++++++++++
-#. ``tipp3``: TIPP3.
 
-#. ``tipp3-fast``: TIPP3-fast.
+.. list-table::
+   :widths: 50 50
+   :header-rows: 1
 
-#. ``kraken_all_reads``: Kraken2 with all reads as input.
-
-#. ``kraken_filtered``: Kraken2 with filtered reads as input.
-
-#. ``bracken_all_reads``: Bracken with all reads as input.
-
-#. ``bracken_filtered``: Bracken with filtered reads as input.
-
-#. ``metabuli_all_reads``: Metabuli with all reads as input.
-
-#. ``metabuli_filtered``: Metabuli with filtered reads as input.
-
-#. ``metaphlan_all_reads``: MetaPhlAn4 with all reads as input.
-
-#. ``motus``: mOTUsv3 with all reads as input.
+   * - method id
+     - description
+   * - ``tipp3``
+     - TIPP3.
+   * - ``tipp3-fast``
+     - TIPP3-fast.
+   * - ``kraken_all_reads``
+     - Kraken2 with all reads as input.
+   * - ``kraken_filtered``
+     - Kraken2 with filtered reads as input.
+   * - ``bracken_all_reads``
+     - Bracken with all reads as input.
+   * - ``bracken_filtered``
+     - Bracken with filtered reads as input.
+   * - ``metabuli_all_reads``
+     - Metabuli with all reads as input.
+   * - ``metabuli_filtered``
+     - Metabuli with filtered reads as input.
+   * - ``metaphlan_latest_all_reads``
+     - MetaPhlAn4 with all reads as input.
+   * - ``motus``
+     - mOTUsv3 with all reads as input.
 
 Computed Evaluation Metrics
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,5 +116,5 @@ We used ``art_illumina``, ``pbsim``, and ``nanosim`` to simulate
 Illumina, PacBio, and Nanopore reads.
 Due to space limitation, the scripts for simulation, simulated reads,
 and data for the simulation are provided at
-`https://doi.org/10.13012/B2IDB-5467027_V1`__.
+`<https://doi.org/10.13012/B2IDB-5467027_V1>`__.
 The accession numbers for each dataset are listed in the supplementary materials.
