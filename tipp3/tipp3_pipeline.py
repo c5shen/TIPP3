@@ -106,6 +106,7 @@ def tipp3_stop(start_time):
     send = time.time()
     _LOG.info('TIPP3 completed in {} seconds...'.format(send - start_time))
     #print('TIPP3 completed in {} seconds...'.format(s2 - start_time))
+    exit(0)
 
 '''
 Init function for a queue and get configurations for each worker
@@ -191,7 +192,7 @@ def _init_parser(mode=None):
             'and pplacer placement.',
             '\n\"tipp3-fast\": the fastest setting, with BLAST alignment',
             'and Batch-SCAMPP placement.',
-            'The mode will be overridden by parameters --alignment-method',
+            '\nThe mode will be overridden by parameters --alignment-method',
             'and --placement-method.']), required=False)
     basic_group.add_argument('--alignment-method',
         type=str, choices=['witch', 'blast', 'hmm'], default=None,

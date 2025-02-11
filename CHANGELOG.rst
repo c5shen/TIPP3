@@ -1,3 +1,8 @@
+TIPP3 v0.1b2
+------------
+#. Fixed a missing exit command for function ``tipp3_stop()``.
+#. Minor help text fixes.
+
 TIPP3 v0.1b1
 ------------
 #. Fixed a bug in code that prevented BLASTN from reading in fasta/fa files
