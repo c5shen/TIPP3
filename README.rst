@@ -263,4 +263,4 @@ TODO list
    :target: CHANGELOG.rst
 .. |Wiki| image:: https://img.shields.io/badge/Wiki-page-blue?style=flat
    :alt: Static Badge
-   :target: https://github.com/c5shen/TIPP3.wiki.git
+   :target: https://github.com/c5shen/TIPP3/wiki
