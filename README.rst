@@ -1,6 +1,6 @@
 TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 ===========================================================
-|PyPI version| |Python version| |Build| |License| |CHANGELOG|
+|PyPI version| |Python version| |Build| |License| |CHANGELOG| |Wiki|
   
 :Developer:
     Chengze Shen
@@ -233,6 +233,8 @@ placement. Keep all temporary files during the run.
 
 TODO list
 ---------
+* 2.25.2025 - Finish the Wiki page with instructions on how to create a
+  customized TIPP reference package.
 * 1.26.2025 - Add a parameter option to allow users to set the support value
   for abundance profiling. Currently, the support values are empirically set
   for different placement methods (90% for pplacer-taxtastic and 95% for
@@ -256,6 +258,9 @@ TODO list
 .. |Build| image:: https://img.shields.io/github/actions/workflow/status/c5shen/TIPP3/python-package.yml
    :alt: GitHub Workflow Status (with event)
    :target: https://github.com/c5shen/TIPP3
-.. |CHANGELOG| image:: https://img.shields.io/badge/CHANGELOG-gray?style=flat
+.. |CHANGELOG| image:: https://img.shields.io/badge/CHANGE-LOG-blue?style=flat
    :alt: Static Badge
    :target: CHANGELOG.rst
+.. |Wiki| image:: https://img.shields.io/badge/Wiki-page-blue?style=flat
+   :alt: Static Badge
+   :target: https://github.com/c5shen/TIPP3.wiki.git
