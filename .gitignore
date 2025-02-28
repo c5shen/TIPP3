@@ -13,3 +13,6 @@ examples/*.out
 examples/*_scenario*
 build/
 *.egg-info/
+.ipynb_checkpoints
+ncbi_taxonomy.db
+taxdmp.zip
