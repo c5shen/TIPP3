@@ -41,7 +41,7 @@ tipp3 = "tipp3.tipp3_pipeline:run_tipp3_fast"
 
 [project.urls]
 Homepage = "https://github.com/c5shen/TIPP3"
-Changelog = "https://github.com/c5shen/TIPP3/CHANGELOG.rst"
+Changelog = "https://github.com/c5shen/TIPP3/blob/main/CHANGELOG.rst"
 
 #[tool.setuptools.packages.find]
 #where = ["tipp3/tools"]

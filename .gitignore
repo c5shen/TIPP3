@@ -16,3 +16,9 @@ build/
 .ipynb_checkpoints
 ncbi_taxonomy.db
 taxdmp.zip
+*raxml.*
+*fasttree.*
+*taxonomy*
+*.updated.*
+*.masked95.*
+custom_tipp_refpkg

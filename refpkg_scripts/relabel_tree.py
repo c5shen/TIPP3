@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import dendropy
 import sys, os
 
@@ -33,6 +34,8 @@ def write_lineage(tree, outpath):
                 if pp.label:
                     path.append(pp.label)
             f.write('{}\n'.format(','.join(path)))
+    # sort lineage for easier comparison
+    os.system(f"sort {outpath} -o {outpath}")
 
 # max system recursion limit hard encoding to a large number
 # a temp fix for dendropy tree recursion issues
@@ -76,50 +79,55 @@ t.encode_bipartitions(suppress_unifurcations=False,
 #print(len(t.internal_nodes()), len(t.leaf_nodes()))
 #print(len(t2.internal_nodes()), len(t2.leaf_nodes()))
 
-# ONE SPECIAL scenario: there is no archaea taxa in this tree and the seed
-# node is just Bac (2).
+# ONE SPECIAL scenario: the seed node is NOT labeled 131567, meaning that 
+# there is only one superkingdom group in the tree (e.g., only Bacteria {2}
+# and no Archaea {2157}).
 # To correctly seed the refined tree in this case, we need to find just one
 # bipartition from the seed_node.child_nodes() (e.g., the first one), and seed
 # at that edge by creating a new node using the original edge length
-if t.seed_node.label == '2':
-    root_label = '2'
+seed_node_children = {}
+if t.seed_node.label != '131567':
+    #for cnode in t.seed_node.child_nodes():
+    #    print(cnode.label)
+    #print("")
+    #for cnode in t2.seed_node.child_nodes():
+    #    print(len(cnode.leaf_nodes()))
+    #print(t.seed_node.label)
+    root_label = t.seed_node.label
     samp_node = t.seed_node.child_nodes()[0]
-    t_samp_num_leaf = len(samp_node.bipartition.leafset_taxa(
-        taxon_namespace=t.taxon_namespace))
-    #print(t_samp_num_leaf)
+    #t_samp_num_leaf = len(samp_node.bipartition.leafset_taxa(
+    #    taxon_namespace=t.taxon_namespace))
+    #print(samp_node.label)
+    #exit()
 
-    print('reseeding {} (only Bac/no Arch)'.format(sys.argv[2]))
-    newroot = dendropy.Node(label=root_label)
-    cnode = samp_node
-    bip = cnode.edge.bipartition; bip.is_mutable = False
+    print('reseeding {} (only one superkingdom group)'.format(sys.argv[2]))
+    t2.seed_node.label = root_label
+    #newroot = dendropy.Node(label=root_label)
+    #cnode = samp_node
+    #bip = cnode.edge.bipartition; bip.is_mutable = False
 
-    if bip in t2.bipartition_edge_map:
-        t2edge = t2.bipartition_edge_map[bip]
-        t2edge_len = t2edge.length
-        t2h, t2t = t2edge.head_node, t2edge.tail_node
-        t2t.remove_child(t2h)
-        newroot.add_child(t2h); newroot.parent_node = t2t
+    #if bip in t2.bipartition_edge_map:
+    #    t2edge = t2.bipartition_edge_map[bip]
+    #    t2edge_len = t2edge.length
+    #    t2h, t2t = t2edge.head_node, t2edge.tail_node
+    #    t2t.remove_child(t2h)
+    #    newroot.add_child(t2h); newroot.parent_node = t2t
 
-        t2.reseed_at(newroot, update_bipartitions=True,
-                suppress_unifurcations=False,
-                collapse_unrooted_basal_bifurcation=False)
-    else:
-        raise ValueError('bip <{}> in unrefined tree not in refined tree'.format(
-            cnode))
+    #    t2.reseed_at(newroot, update_bipartitions=True,
+    #            suppress_unifurcations=False,
+    #            collapse_unrooted_basal_bifurcation=False)
+    #else:
+    #    raise ValueError('bip <{}> in unrefined tree not in refined tree'.format(
+    #        cnode))
 else:
-    bac = None; arch = None
-    assert len(t.seed_node.child_nodes()) == 2, \
-            'the seed node does not have 2 children (<2 or >2)'
     for cnode in t.seed_node.child_nodes():
-        if cnode.label == '2':
-            bac = cnode.label
-        else:
-            arch = cnode.label
-    t_bac_num_leaf = len(t.find_node_with_label(bac).bipartition.leafset_taxa(
-            taxon_namespace=t.taxon_namespace))
-    t_arch_num_leaf = len(t.find_node_with_label(arch).bipartition.leafset_taxa(
-            taxon_namespace=t.taxon_namespace))
-    #print(t_bac_num_leaf, t_arch_num_leaf)
+        # map number of leaves to the corresponding cnode label
+        # mostly, mostly, will not be an issue since the number of
+        # leaves for bacteria, archaea, eukaryota should be quite different
+        # under normal conditions
+        _num_leaf = len(cnode.bipartition.leafset_taxa(
+                taxon_namespace=t.taxon_namespace))
+        seed_node_children[_num_leaf] = cnode.label
 
     # find the bipartition in t2 that's the same as the bac or arch bipartition in t
     # add a new node that splits the original edge in t2. The new node will be the
@@ -127,7 +135,6 @@ else:
     print('reseeding {}'.format(sys.argv[2]))
     newroot = dendropy.Node(label=root_label)
     for cnode in t.seed_node.child_nodes():
-        assert cnode.label == bac or cnode.label == arch
         bip = cnode.edge.bipartition; bip.is_mutable = False
         leafset_size = len(bip.leafset_taxa(taxon_namespace=t.taxon_namespace))
         if bip in t2.bipartition_edge_map:
@@ -148,11 +155,7 @@ else:
             #        collapse_unrooted_basal_bifurcation=False,
             #        is_bipartitions_mutable=False)
             #t2t.bipartition._split_bitmask = ~t2h.bipartition._split_bitmask
-            #print(t2t.bipartition._split_bitmask == t2t.bipartition._leafset_bitmask)
             #t2t.bipartition.compile_bipartition()
-            #print(t2h)
-            #print(t2t)
-            #print(t2h.bipartition == t2t.bipartition)
             break
         else:
             raise ValueError('bip <{}> in unrefined tree not in refined tree'.format(
@@ -161,16 +164,6 @@ for edge in t2.seed_node.child_edges():
     #print(edge.length)
     if not edge.length:
         edge.length = 0
-#print(t2.seed_node, 
-#        len(t2.internal_nodes()), len(t2.leaf_nodes()))
-#print(t2.seed_node.child_nodes()[0],
-#        len(
-#    t2.seed_node.child_nodes()[0].bipartition.leafset_taxa(taxon_namespace=t2.taxon_namespace)
-#    ))
-#print(t2.seed_node.child_nodes()[1],
-#        len(
-#    t2.seed_node.child_nodes()[1].bipartition.leafset_taxa(taxon_namespace=t2.taxon_namespace)
-#    ))
 
 missing = []
 mapped = 0
@@ -198,26 +191,19 @@ print('\tmissing', len(missing))
 # due to overwriting
 if t.seed_node.label != '2':
     for cnode in t2.seed_node.child_nodes():
-        if len(cnode.leaf_nodes()) == t_bac_num_leaf:
-            cnode.label = bac
-        elif len(cnode.leaf_nodes()) == t_arch_num_leaf:
-            cnode.label = arch
+        _num_leaf = len(cnode.leaf_nodes())
+        if _num_leaf in seed_node_children:
+            cnode.label = seed_node_children[_num_leaf]
+        #if len(cnode.leaf_nodes()) == t_bac_num_leaf:
+        #    cnode.label = bac
+        #elif len(cnode.leaf_nodes()) == t_arch_num_leaf:
+        #    cnode.label = arch
         else:
             raise ValueError("there must be something wrong with the bipartitions in the refined tree.")
 else:
     # in this case, the bipartition won't be labelled incorrectly since the
     # other label is always going to be None (and not considered)
     pass
-    #for cnode in t2.seed_node.child_nodes():
-    #    print(cnode, cnode.edge_length)
-#print(t2.seed_node)
-#print(t2.seed_node.child_nodes())
-#for c in t2.seed_node.child_nodes():
-#    print(c, c.parent_node, c.child_nodes())
-
-#a = t2.find_node_with_label(label=root_label)
-#
-#t2.reroot_at_node(a, collapse_unrooted_basal_bifurcation=False)
 
 t2.write_to_path(dest=sys.argv[3], schema='newick', suppress_rooting=False,
                  suppress_internal_node_labels=False)

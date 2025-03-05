@@ -6,8 +6,12 @@ import concurrent.futures
 from concurrent.futures import ProcessPoolExecutor
 
 def runner(args):
-    cmd, marker, outdir, alignment_path = args
+    cmd, marker, outdir, alignment_path, is_gzipped = args
     os.system(cmd)
+
+    # est.aln.nuc.fasta derives from est.aln.nuc.fasta.gz, so no need to keep an extra copy
+    if is_gzipped:
+        os.system(f"rm {alignment_path}")
 
     # create the return statement
     to_write_map = {
@@ -26,10 +30,19 @@ def runner(args):
 
 def runner2(args):
     to_write_map, gene, outdir, alignment_path = args
+
+    # make sure which filetype we are reading (compressed or uncompressed)
+    suffix = alignment_path.strip().split('.')[-1]
+
     for k, v in to_write_map.items():
         if k == 'size':
             # write size
-            size = os.popen('wc -l {}'.format(alignment_path)).read().strip().split()[0]
+            if suffix in ['gz', 'gzip']:
+                cmd = ['gzip', '-d', alignment_path, '-c', '|', 'wc', '-l']
+            else:
+                cmd = ['cat', alignment_path, '|', 'wc', '-l']
+            
+            size = os.popen(' '.join(cmd)).read().strip().split()[0]
             size = int(size) // 2    # two lines per sequence
             size_path = os.path.join(outdir, 'est.aln.nuc.fasta.size')
             with open(size_path, 'w') as f:
@@ -137,29 +150,38 @@ def main():
     if not os.path.isdir(blastdir):
         os.makedirs(blastdir)
     # run makeblastdb command
-    if not os.path.exists(f"{blastdir}/alignment.fasta.db.ndb"):
-        # FIRST, aggregate all sequences from each gene to form a single alignment.fasta file
-        # THEN, create a seq2marker.tab that maps each sequence to their corresponding gene
-        print("Aggregating all sequences to create a BLAST database...")
-        blast_aln_path = os.path.join(blastdir, 'alignment.fasta')
-        seq2marker_path = os.path.join(blastdir, 'seq2marker.tab')
-        for gene in genes:
-            indir = os.path.join(workdir, gene)
-            aln_path = os.path.join(indir, 'est.aln.nuc.fasta')
-            # use cat to append alignment to the alignment.fasta file
-            cmd = "cat {} >> {}".format(aln_path, blast_aln_path)
-            os.system(cmd)
-
-            # use awk to append a tab and the gene name to each line from 
-            cmd = "awk '/^>/ {{print substr($0, 2) \"\t\" \"{}\"}}' {} >> {}".format(
-                gene, aln_path, seq2marker_path)
-            os.system(cmd)
-
-        print("Running makeblastdb...")
-        cmd = f"makeblastdb -in {blast_aln_path} -out {blast_aln_path}.db -dbtype nucl"
+    # FIRST, aggregate all sequences from each gene to form a single alignment.fasta file
+    # THEN, create a seq2marker.tab that maps each sequence to their corresponding gene
+    print("Aggregating all sequences to create a BLAST database...")
+    blast_aln_path = os.path.join(blastdir, 'alignment.fasta')
+    # remove old blast_aln_path to avoid appending extra lines
+    if os.path.exists(blast_aln_path):
+        os.system(f"rm {blast_aln_path}")
+    seq2marker_path = os.path.join(blastdir, 'seq2marker.tab')
+    for gene in genes:
+        indir = os.path.join(workdir, gene)
+        aln_path = os.path.join(indir, 'est.aln.nuc.fasta')
+        gzipped_path = os.path.join(indir, 'est.aln.nuc.fasta.gz')
+        # use cat to append alignment to the alignment.fasta file
+        cmd = "awk '/^>/ {{print; next}} {{gsub(/-/, \"\"); print}}' >> {}".format(blast_aln_path)
+        # use awk to append a tab and the gene name to each line from 
+        cmd2 = "awk '/^>/ {{print substr($0, 2) \"\t\" \"{}\"}}' >> {}".format(gene, seq2marker_path)
+        if not os.path.exists(aln_path):
+            if not os.path.exists(gzipped_path):
+                raise FileNotFoundError(f"Neither {aln_path} nor {gzipped_path} can be found.")
+            else:
+                # gzipped version
+                cmd = f"gzip -d {gzipped_path} -c | " + cmd
+                cmd2 = f"gzip -d {gzipped_path} -c | " + cmd2
+        else:
+            # regular file version
+            cmd = f"cat {aln_path} | " + cmd
+            cmd2 = f"cat {aln_path} | " + cmd2
         os.system(cmd)
-    else:
-        print("BLAST process is already done, skipping...")
+        os.system(cmd2)
+    print("Running makeblastdb...")
+    cmd = f"makeblastdb -in {blast_aln_path} -out {blast_aln_path}.db -dbtype nucl"
+    os.system(cmd)
     filemap.write('blast:database = blast/alignment.fasta.db\n')
     filemap.write('blast:seq-to-marker-map = blast/seq2marker.tab\n')
 
@@ -168,8 +190,19 @@ def main():
         # using the taxonomy tree generated before alignment
         indir = os.path.join(workdir, gene)
         seq_info_path = os.path.join(indir, 'species.updated.mapping')
-        alignment_path = os.path.join(indir, 'est.aln.nuc.fasta')
-       
+        aln_path = os.path.join(indir, 'est.aln.nuc.fasta')
+        gzipped_path = os.path.join(indir, 'est.aln.nuc.fasta.gz')
+        
+        # if regular aln_path does not exist, gunzip to obtain it and remove the copy later
+        is_gzipped = False
+        if not os.path.exists(aln_path):
+            if not os.path.exists(gzipped_path):
+                raise FileNotFoundError(f"Neither {aln_path} nor {gzipped_path} can be found.")
+            else:
+                is_gzipped = True
+                cmd = f"gzip -d {gzipped_path} -c > {aln_path}"
+                os.system(cmd)
+
         ############ FastTree-2 branch length re-estimation
         tree_path = os.path.join(indir, 'est.fasttree.tre')
         tree_stat_path = os.path.join(indir, 'est.fasttree.log')
@@ -177,11 +210,11 @@ def main():
         outdir = os.path.join(pkgdir, f'{gene}.refpkg')
         cmd = ' '.join([
             f"taxit create -c -a '{name}' -d '{text}' -r {version}",
-            f"--aln-fast {alignment_path}",
+            f"--aln-fast {aln_path}",
             f"--tree-file {tree_path} --tree-stats {tree_stat_path}",
             f"-P {outdir} -l {gene} --no-reroot"])
 
-        arg = (cmd, gene, outdir, alignment_path)
+        arg = (cmd, gene, outdir, aln_path, is_gzipped)
         futures.append(pool.submit(runner, arg))
 
     gene_to_map = {}

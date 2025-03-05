@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 
-import os, sys
+import os, sys, gzip
 from operator import add
 
-def read_fasta(path):
+def read_fasta(path, suffix=None):
     ret = {}
     name = None
     seq_list = list()
-    f = open(path, 'r')
+    if not suffix:
+        f = open(path, 'r')
+    elif suffix == 'gz':
+        f = gzip.open(path, 'rt')
+    else:
+        raise NotImplementedError
+        
     for line_number, line in enumerate(f):
         if line.startswith('>'):
             if name:
@@ -30,8 +36,13 @@ inpath = sys.argv[1]
 outpath = sys.argv[2]
 thres = float(sys.argv[3])
 
+# also allow for gz file reading
+suffix = None
+if inpath.split('.')[-1] in ['gzip', 'gz']:
+    suffix = 'gz'
+
 # record input alignment sequences
-aln = read_fasta(inpath)
+aln = read_fasta(inpath, suffix=suffix)
 seqs = list(aln.values())
 num_seq, seqlen = len(seqs), len(seqs[0])
 gaps = [0] * seqlen
