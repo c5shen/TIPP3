@@ -1,7 +1,7 @@
 import os
 import zipfile
 from tipp3.configs import Configs
-from tipp3 import get_logger
+from tipp3 import get_logger, log_exception
 
 _LOG = get_logger(__name__)
 
@@ -13,7 +13,9 @@ def loadReferencePackage(refpkg_path, refpkg_version):
 
     # sanity check for the existence of refpkg_path
     if not refpkg_path or not os.path.exists(refpkg_path):
-        errmsg = 'Refpkg does not exist: {}'.format(refpkg_path)
+        errmsg = ('Refpkg does not exist: {}'.format(refpkg_path) + 
+            '\nPlease download reference package using subcommand ' +
+            '\"download_refpkg\"')
         _LOG.error(errmsg)
         raise ValueError(errmsg)
 
@@ -85,7 +87,10 @@ def downloadReferencePackage(outdir, decompress=False):
         os.system(cmd)
 
     # identify the extract directory name
-    zf = zipfile.ZipFile(outpath)
+    try:
+        zf = zipfile.ZipFile(outpath)
+    except FileNotFoundError as e:
+        log_exception(_LOG)
     files = zf.namelist()
     dir = files[0].split('/')[0]
 
@@ -102,3 +107,4 @@ def downloadReferencePackage(outdir, decompress=False):
     else:
         _LOG.info("Finished downloading. To use with TIPP3, please "
             f"decompress the downloaded file at {outpath}")
+    return True

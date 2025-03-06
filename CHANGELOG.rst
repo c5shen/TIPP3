@@ -8,6 +8,8 @@ TIPP3 v0.1
    latest TIPP3 reference package to a designated directory. For adjustment,
    The other two installed binaries ``tipp3`` and ``tipp3-fast`` now function
    only for the subcommand "abundance".
+#. Fixed help text typos and adjusted exception logging to exit with
+   return code 1.
 
 TIPP3 v0.1b2
 ------------

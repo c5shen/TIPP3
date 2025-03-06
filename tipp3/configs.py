@@ -34,16 +34,19 @@ Configurations defined by users
 class Configs:
     global _root_dir
 
-    # subcommand
+    # subcommand and verbose
     command = None
+    verbose = 'INFO'
+
+    # Multiprocessing settings
+    num_cpus = -1
+    max_concurrent_jobs = None
 
     # basic input items
     query_path = None
     refpkg_path = None     # e.g., xxx/yyy/tipp3-refpkg
     outdir = None
     config_file = None     # Added @ 7.25.2024 
-    keeptemp = False
-    verbose = 'INFO'
 
     # choices of parameters
     # default to TIPP3-fast
@@ -64,11 +67,10 @@ class Configs:
     # reference package dir path
     refpkg_version = 'markers-v4'
 
-    # Multiprocessing settings
-    num_cpus = -1
-    max_concurrent_jobs = None
 
     # miscellaneous
+    alignment_only = False
+    keeptemp = False
     bypass_setup = True
     
     ########## configs specific for download_refpkg ###########
@@ -115,10 +117,11 @@ def valid_attribute(k, v):
     return False
 
 # print a list of all configurations
-def getConfigs():
+def getConfigs(arguments=None):
     msg = '\n********** Configurations **********\n' + \
             '\thome.path: {}\n'.format(homepath) + \
-            '\tmain.config: {}\n\n'.format(main_config_path)
+            '\tmain.config: {}\n'.format(main_config_path) + \
+            '\targuments: {}\n\n'.format(arguments)
     for k, v in Configs.__dict__.items():
         if valid_attribute(k, v):
             msg += '\tConfigs.{}: {}\n'.format(k, v)
@@ -187,9 +190,8 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     # (to quickly create the outdir and log file
     args = parser.parse_args(cmdline_args)
     Configs.outdir = os.path.realpath(args.outdir)
-    if not os.path.exists(Configs.outdir):
-        os.makedirs(Configs.outdir)
-    #Configs.log_path = os.path.join(Configs.outdir, 'tipp3.log')
+    #if not os.path.exists(Configs.outdir):
+    #    os.makedirs(Configs.outdir)
 
     # load default_args from main.config
     default_args = Namespace()

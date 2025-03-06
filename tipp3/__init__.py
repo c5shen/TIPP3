@@ -21,7 +21,7 @@ import logging
 import os
 
 '''
-Updated @ 1.22.2025 by Chengze Shen
+Updated @ 3.6.2025 by Chengze Shen
 
 Major changes to suit TIPP3 pipeline.
 '''
@@ -97,8 +97,8 @@ def log_exception(logger):
     import io
     s = io.StringIO()
     traceback.print_exc(None, s)
-    logger.debug(s.getvalue())
-
+    logger.error(s.getvalue())
+    exit(1)
 
 os.sys.setrecursionlimit(1000000)
 

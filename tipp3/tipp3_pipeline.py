@@ -54,6 +54,10 @@ def tipp3_pipeline(*args, **kwargs):
         _LOG.warning('Initializing ProcessorPoolExecutor instance...')
         pool = ProcessPoolExecutor(Configs.num_cpus,
                 initializer=initiate_pool, initargs=(parser, cmdline_args,))
+        
+        # create output directory
+        if not os.path.exists(Configs.outdir):
+            os.makedirs(Configs.outdir)
 
         # (0) load refpkg
         refpkg = loadReferencePackage(Configs.refpkg_path, Configs.refpkg_version)
@@ -140,7 +144,7 @@ def parseArguments(mode=None, subcommand=None):
     buildConfigs(parser, cmdline_args)
     #_LOG = get_logger(__name__, log_path=Configs.log_path)
 
-    getConfigs()
+    getConfigs(arguments=cmdline_args)
     _LOG.info('TIPP3 is running with: {}'.format(' '.join(cmdline_args)))
     #if os.path.exists(main_config_path):
     #    _LOG.info('Main configuration loaded from {}'.format(
@@ -233,10 +237,13 @@ def _init_parser(mode=None):
     basic_group.add_argument('--placement-method',
         type=str, choices=['pplacer-taxtastic', 'bscampp'], default=None,
         help=' '.join(['Placement method to use for placing aligned reads',
-            'to marker gene taxonomic trees. [default: using --mode']),
+            'to marker gene taxonomic trees. [default: using --mode]']),
         required=False)
     basic_group.add_argument('-c', '--config-file',
-        type=str, help='Path to a user-defined config file. [default: None]',
+        type=str, help=' '.join(['Path to a user-defined config file.',
+            'see an example at\n',
+            'https://github.com/c5shen/TIPP3/blob/main/custom.config',
+            '[default: None]']),
         required=False, default=None)
     basic_group.add_argument('-d', '--outdir',
         type=str, help='Path to the desired output directory [default: ./tipp3_output]',
