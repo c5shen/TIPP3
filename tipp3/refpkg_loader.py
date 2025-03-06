@@ -1,4 +1,5 @@
 import os
+import zipfile
 from tipp3.configs import Configs
 from tipp3 import get_logger
 
@@ -65,3 +66,39 @@ def loadReferencePackage(refpkg_path, refpkg_version):
     _LOG.info('Number of marker genes: {}'.format(len(refpkg["genes"])))
 
     return refpkg
+
+'''
+Download the latest TIPP reference package
+'''
+def downloadReferencePackage(outdir, decompress=False):
+    # hosted on Illinois Databank
+    url = 'https://databank.illinois.edu/datafiles/yq7ry/download'
+    _LOG.info(f"Downloading the latest TIPP reference package from {url}")
+
+    # specify the name of the downloaded zipfile
+    outpath = os.path.join(outdir, 'tipp3-refpkg.zip')
+    if os.path.exists(outpath):
+        _LOG.warning(
+                f"{outpath} exists! Skipped download to avoid overwriting.")
+    else:
+        cmd = f"wget {url} -O {outpath}"
+        os.system(cmd)
+
+    # identify the extract directory name
+    zf = zipfile.ZipFile(outpath)
+    files = zf.namelist()
+    dir = files[0].split('/')[0]
+
+    # decompress if specified
+    if decompress:
+        _LOG.info(f"Decompressing {os.path.basename(outpath)} to {outdir}")
+        if os.path.isdir(dir):
+            _LOG.warning(f"\"{dir}/\" from the zipfile exists at {outdir}! "
+                    "Skipped decompression to avoid overwriting.")
+        else:
+            cmd = f"unzip -d {outdir} {outpath}"
+            os.system(cmd)
+            _LOG.info(f"Decompressed refpkg directory name: {dir}")
+    else:
+        _LOG.info("Finished downloading. To use with TIPP3, please "
+            f"decompress the downloaded file at {outpath}")

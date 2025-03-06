@@ -1,3 +1,14 @@
+TIPP3 v0.1
+----------
+#. Added the full pipeline to create a customized TIPP reference package. Please
+   refer to the Wiki page and the Jupyter notebook in ``refpkg_scripts``.
+#. Added subcommands: "abundance" and "download_refpkg".
+   ``run_tipp3.py abundance`` has the original TIPP3 behavior for abundance
+   profiling. ``run_tipp3.py download_refpkg`` can be used to download the
+   latest TIPP3 reference package to a designated directory. For adjustment,
+   The other two installed binaries ``tipp3`` and ``tipp3-fast`` now function
+   only for the subcommand "abundance".
+
 TIPP3 v0.1b2
 ------------
 #. Fixed a missing exit command for function ``tipp3_stop()``.

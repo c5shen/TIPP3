@@ -34,8 +34,8 @@ Configurations defined by users
 class Configs:
     global _root_dir
 
-    ## logging output path
-    #log_path = None
+    # subcommand
+    command = None
 
     # basic input items
     query_path = None
@@ -70,6 +70,9 @@ class Configs:
 
     # miscellaneous
     bypass_setup = True
+    
+    ########## configs specific for download_refpkg ###########
+    decompress = False
 
 # check for valid configurations and set them
 def set_valid_configuration(name, conf):
@@ -196,7 +199,7 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     # load cmdline args first, then search for user.config if specified
     args = parser.parse_args(cmdline_args)
     cmdline_user = []
-    if args.config_file != None:
+    if 'config_file' in args.__dict__ and args.config_file != None:
         # override default_args
         Configs.config_file = args.config_file
         cmdline_user = _read_config_file(Configs.config_file,
@@ -207,48 +210,51 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     args = parser.parse_args(cmdline_default + cmdline_user + cmdline_args,
             namespace=default_args)
 
-    # Must have
-    Configs.query_path = os.path.realpath(args.query_path)
-    if args.refpkg_path:
-        Configs.refpkg_path = os.path.realpath(args.refpkg_path)
+    # store sub-command given
+    Configs.command = args.command
 
-    Configs.alignment_only = args.alignment_only
-    Configs.keeptemp = args.keeptemp
+    ######### subcommand: abundance ##########
+    if Configs.command == 'abundance':
+        # Must have
+        Configs.query_path = os.path.realpath(args.query_path)
+        if args.refpkg_path:
+            Configs.refpkg_path = os.path.realpath(args.refpkg_path)
 
-    # set up preset mode, TIPP3 or TIPP3-fast
-    Configs.mode = args.mode
-    if args.mode == 'tipp3-fast':
-        Configs.alignment_method = 'blast'
-        Configs.placement_method = 'bscampp'
-    elif args.mode == 'tipp3':
-        Configs.alignment_method = 'witch'
-        Configs.placement_method = 'pplacer-taxtastic'
+        Configs.alignment_only = args.alignment_only
+        Configs.keeptemp = args.keeptemp
 
-    # alignment_method and placement_method, and refpkg version
-    if args.alignment_method:
-        Configs.alignment_method = args.alignment_method
-    if args.placement_method:
-        Configs.placement_method = args.placement_method
-    Configs.refpkg_version = args.refpkg_version
+        # set up preset mode, TIPP3 or TIPP3-fast
+        Configs.mode = args.mode
+        if args.mode == 'tipp3-fast':
+            Configs.alignment_method = 'blast'
+            Configs.placement_method = 'bscampp'
+        elif args.mode == 'tipp3':
+            Configs.alignment_method = 'witch'
+            Configs.placement_method = 'pplacer-taxtastic'
 
-    if args.num_cpus > 0:
-        Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
+        # alignment_method and placement_method, and refpkg version
+        if args.alignment_method:
+            Configs.alignment_method = args.alignment_method
+        if args.placement_method:
+            Configs.placement_method = args.placement_method
+        Configs.refpkg_version = args.refpkg_version
+
+        if args.num_cpus > 0:
+            Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
+        else:
+            Configs.num_cpus = os.cpu_count()
+
+        # verbose level
+        verbose = os.getenv('TIPP_LOGGING_LEVEL', 'info').upper()
+        if verbose in logging_levels:
+            Configs.verbose = verbose
+    ############ subcommand: download_refpkg #############
+    elif Configs.command == 'download_refpkg':
+        Configs.outdir = args.outdir
+        Configs.decompress = args.decompress
     else:
-        Configs.num_cpus = os.cpu_count()
-
-    # verbose level
-    verbose = os.getenv('TIPP_LOGGING_LEVEL', 'info').upper()
-    if verbose in logging_levels:
-        Configs.verbose = verbose
-
-    #if args.verbose == 0:
-    #    Configs.verbose = 'error'
-    #elif args.verbose > 1:
-    #    Configs.verbose = 'debug'
-    #else:
-    #    Configs.verbose = 'info'
-
-
+        raise NotImplementedError
+    
     #if args.max_concurrent_jobs:
     #    Configs.max_concurrent_jobs = args.max_concurrent_jobs
     #else:

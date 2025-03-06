@@ -43,7 +43,8 @@ See the pipeline below for the TIPP3 workflow.
 | (TIPP3) Shen, Chengze, Eleanor Wedell,         |
 | Mihai Pop, and Tandy Warnow, "TIPP3 and        |
 | TIPP3-fast: improved abundance profiling in    |
-| metagenomics." TBD.                            |
+| metagenomics." Accepted at PLOS Computational  |
+| biology.                                       |
 +------------------------------------------------+
 | (TIPP2) Nguyen, Nam, Siavash Mirarab,          |
 | Bo Liu, Mihai Pop, and Tandy Warnow,           |
@@ -90,6 +91,10 @@ Illinois Data Bank.
 Once downloaded, unzip the file and please see `Examples`_ and
 `Usage`_ for referring to the reference package.
 
+If you would like to create a customized TIPP reference package, please refer
+to `this Wiki page <https://github.com/c5shen/TIPP3/wiki/Create-your-own-reference-package>`__
+for the pipeline to do so.
+
 Install with PyPI (``pip``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The easiest way to install TIPP3 is to use the PyPI distribution.
@@ -102,9 +107,9 @@ The easiest way to install TIPP3 is to use the PyPI distribution.
    # 2. Three binary executables will be installed. The first time running
    #    any of the binaries will create the TIPP3 config file at
    #    ~/.tipp3/main.config
-   tipp3 [-h]           # (recommended) running preset "TIPP3-fast", or
-   tipp3-accurate [-h]  # running preset "TIPP3", or
-   run_tipp3.py [-h]
+   tipp3 [-h]           # (recommended) preset "TIPP3-fast" for abundance profiling
+   tipp3-accurate [-h]  # preset "TIPP3" for abundance profiling
+   run_tipp3.py [-h]    # see other options
 
 
 Install from source files
@@ -154,16 +159,21 @@ need to use.
 user-specified config file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 In addition, a user can specify a customized config file with ``-c`` or
-``--config-file`` parameter option when running TIPP3 (e.g.,
-``run_tipp3.py -c user.config``). The ``user.config`` file will override settings
-from ``main.config`` (if overlaps). Command-line arguments still have the
-highest priority and will override both config files, if any parameters overlap.
+``--config-file`` parameter option when running TIPP3 for abundance profiling
+(e.g., ``run_tipp3.py abundance -c user.config``). The ``user.config`` file
+will override settings from ``main.config`` (if overlaps). Command-line
+arguments still have the highest priority and will override both config files,
+if any parameters overlap.
 
 Usage
 -----
-The general command to run TIPP3 is listed below. By default, TIPP3-fast is run,
-which is significantly faster than the more accurate TIPP3 mode. See `Examples`_
-below for how to customize the TIPP3 pipeline.
+
+Subcommand ``abundance``
+~~~~~~~~~~~~~~~~~~~~~~~~
+The general command to run TIPP3 for abundance profiling is listed below.
+By default, preset "TIPP3-fast" is run, which is significantly faster than
+the more accurate TIPP3 mode. See `Examples`_ below for how to customize
+the TIPP3 pipeline.
 
 .. code:: bash
 
@@ -176,7 +186,17 @@ below for how to customize the TIPP3 pipeline.
    # XXX.fastq[.gz, .gzip]
    # XXX.fq[.gz, .gzip]
 
-   python3 run_tipp3.py -r [reference package path] -i [query reads] -d [output directory]
+   python3 run_tipp3.py abundance -r [reference package path] -i [query reads] -d [output directory]
+
+Subcommand ``download_refpkg``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Users can also directly download the latest version of the TIPP3 reference
+package using the subcommand ``run_tipp3.py download_refpkg``.
+
+.. code:: bash
+
+   # download tipp3 refpkg to current directory and decompress
+   python3 run_tipp3.py download_refpkg -o ./ --decompress
 
 
 Examples
@@ -202,7 +222,7 @@ query placement.
 
 .. code:: bash
 
-   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
+   python3 run_tipp3.py abundance -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method blast --placement-method bscampp \
       -t 16
@@ -214,7 +234,7 @@ query placement (``pplacer-taxtastic``).
 
 .. code:: bash
 
-   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
+   python3 run_tipp3.py abundance -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method blast --placement-method pplacer-taxtastic \
       -t 16
@@ -226,24 +246,22 @@ placement. Keep all temporary files during the run.
 
 .. code:: bash
 
-   python3 run_tipp3.py -i examples/illumina.small.queries.fasta \
+   python3 run_tipp3.py abundance -i examples/illumina.small.queries.fasta \
       --reference-package [reference package dir] --outdir tipp3_scenario1 \
       --alignment-method witch --placement-method pplacer-taxtastic \
       -t 16 --keeptemp
 
 TODO list
 ---------
-* 2.25.2025 - Finish the Wiki page with instructions on how to create a
-  customized TIPP reference package.
+* 3.6.2025 - Finish the subcommand ``download_refpkg`` for downloading the
+  latest reference package to a user specified directory, and record the
+  directory to ``~/.tipp3/refpkg.config``. When the user did not specify
+  a reference package in the command line, TIPP3 should automatically
+  find the previously installed refpkg and the corresponding version number.
 * 1.26.2025 - Add a parameter option to allow users to set the support value
   for abundance profiling. Currently, the support values are empirically set
   for different placement methods (90% for pplacer-taxtastic and 95% for
   Batch-SCAMPP).
-* 1.21.2025 - Add a script for downloading the latest reference package to a
-  user specified directory, and record the directory to
-  ``~/.tipp3/refpkg.config``. When the user did not specify a reference package
-  in the command line, TIPP3 should automatically find the previously installed
-  refpkg and the corresponding version number.
 
 
 .. |PyPI version| image:: https://img.shields.io/pypi/v/tipp3
