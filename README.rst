@@ -85,13 +85,18 @@ If you have not installed BLAST, you can find the latest version from
 
 TIPP3 reference package
 ~~~~~~~~~~~~~~~~~~~~~~~
+Download precompiled refpkg
++++++++++++++++++++++++++++
 At the time, you can download the TIPP3 reference package from
 `<https://databank.illinois.edu/datasets/IDB-4931852>`__, hosted on the
-Illinois Data Bank.
+Illinois Data Bank. You can also download the latest version
+using `run_tipp3.py download_refpkg`.
 Once downloaded, unzip the file and please see `Examples`_ and
 `Usage`_ for referring to the reference package.
 
-If you would like to create a customized TIPP reference package, please refer
+Create customized refpkg
+++++++++++++++++++++++++
+If you would like to create a customized TIPP3 reference package, please refer
 to `this Wiki page <https://github.com/c5shen/TIPP3/wiki/Create-your-own-reference-package>`__
 for the pipeline to do so.
 
@@ -156,7 +161,7 @@ root directory (``~/.tipp3/main.config``). This file stores the default
 behavior for running TIPP3 and the paths to all binary executables that TIPP3
 need to use.
 
-user-specified config file
+User-specified config file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 In addition, a user can specify a customized config file with ``-c`` or
 ``--config-file`` parameter option when running TIPP3 for abundance profiling
@@ -253,11 +258,6 @@ placement. Keep all temporary files during the run.
 
 TODO list
 ---------
-* 3.6.2025 - Finish the subcommand ``download_refpkg`` for downloading the
-  latest reference package to a user specified directory, and record the
-  directory to ``~/.tipp3/refpkg.config``. When the user did not specify
-  a reference package in the command line, TIPP3 should automatically
-  find the previously installed refpkg and the corresponding version number.
 * 1.26.2025 - Add a parameter option to allow users to set the support value
   for abundance profiling. Currently, the support values are empirically set
   for different placement methods (90% for pplacer-taxtastic and 95% for
