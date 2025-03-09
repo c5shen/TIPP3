@@ -189,9 +189,7 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     # load cmdline args first and identify the output directory
     # (to quickly create the outdir and log file
     args = parser.parse_args(cmdline_args)
-    Configs.outdir = os.path.realpath(args.outdir)
-    #if not os.path.exists(Configs.outdir):
-    #    os.makedirs(Configs.outdir)
+    #Configs.outdir = os.path.realpath(args.outdir)
 
     # load default_args from main.config
     default_args = Namespace()
@@ -214,33 +212,27 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
 
     # store sub-command given
     Configs.command = args.command
+    # directly add all arguments that's defined in the Configs class
+    for k in args.__dict__.keys():
+        k_attr = getattr(args, k)
+        if k in Configs.__dict__:
+            # valid argument that's defined in the Configs class
+            setattr(Configs, k, k_attr)
+        else:
+            # check if the argument is valid
+            set_valid_configuration(k, k_attr)
 
     ######### subcommand: abundance ##########
     if Configs.command == 'abundance':
-        # Must have
-        Configs.query_path = os.path.realpath(args.query_path)
-        if args.refpkg_path:
-            Configs.refpkg_path = os.path.realpath(args.refpkg_path)
-
-        Configs.alignment_only = args.alignment_only
-        Configs.keeptemp = args.keeptemp
-
         # set up preset mode, TIPP3 or TIPP3-fast
-        Configs.mode = args.mode
-        if args.mode == 'tipp3-fast':
+        if Configs.mode == 'tipp3-fast':
             Configs.alignment_method = 'blast'
             Configs.placement_method = 'bscampp'
-        elif args.mode == 'tipp3':
+        elif Configs.mode == 'tipp3':
             Configs.alignment_method = 'witch'
             Configs.placement_method = 'pplacer-taxtastic'
 
-        # alignment_method and placement_method, and refpkg version
-        if args.alignment_method:
-            Configs.alignment_method = args.alignment_method
-        if args.placement_method:
-            Configs.placement_method = args.placement_method
-        Configs.refpkg_version = args.refpkg_version
-
+        # Parallelization related
         if args.num_cpus > 0:
             Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
         else:
@@ -252,23 +244,9 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
             Configs.verbose = verbose
     ############ subcommand: download_refpkg #############
     elif Configs.command == 'download_refpkg':
-        Configs.outdir = args.outdir
-        Configs.decompress = args.decompress
+        pass
     else:
         raise NotImplementedError
-    
-    #if args.max_concurrent_jobs:
-    #    Configs.max_concurrent_jobs = args.max_concurrent_jobs
-    #else:
-    #    Configs.max_concurrent_jobs = min(50, 10 * Configs.num_cpus)
-
-    # add any additional arguments to Configs
-    for k in args.__dict__.keys():
-        if k not in Configs.__dict__:
-            k_attr = getattr(args, k)
-
-            # check whether the configuration is valid
-            set_valid_configuration(k, k_attr)
 
     # try once for validating Configs being set up correctly
     # if not, try once for re-initializing the main config file

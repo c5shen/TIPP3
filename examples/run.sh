@@ -6,7 +6,6 @@
 #SBATCH --partition=eng-instruction
 #SBATCH --mem=128GB
 
-module load python
 time=/usr/bin/time
 
 # example to run TIPP3 with a given refpkg and a set of query reads

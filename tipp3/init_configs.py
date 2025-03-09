@@ -98,8 +98,8 @@ def init_config_file(homepath, rerun=False, prioritize_user_software=True):
     # default path to pplacer, BSCAMPP, and TIPPJsonMerger
     cparser.set('basic', 'pplacer_path',
             os.path.join(tools_dir, 'pplacer', 'pplacer'))
-    cparser.set('basic', 'bscampp_path',
-            os.path.join(tools_dir, 'bscampp', 'EPA-ng-BSCAMPP.py'))
+    #cparser.set('basic', 'bscampp_path',
+    #        os.path.join(tools_dir, 'bscampp', 'EPA-ng-BSCAMPP.py'))
     cparser.set('basic', 'tippjsonmerger_path',
             os.path.join(tools_dir, 'merge', 'tippJsonMerger.jar'))
 
@@ -136,11 +136,11 @@ def init_config_file(homepath, rerun=False, prioritize_user_software=True):
     # if they exist
     if prioritize_user_software:
         print('Detecting existing software from the user\'s environment...')
-        software = ['witch.py', 'pplacer', 'blastn']
+        software = ['bscampp', 'witch.py', 'pplacer', 'blastn']
         print('\tDetected:\n')
         for soft in software:
+            print('\t{}: {}'.format(soft, shutil.which(soft)))
             if shutil.which(soft):
-                print('\t{}: {}'.format(soft, shutil.which(soft)))
                 for _section in set_sections:
                     if soft == 'witch.py':
                         cparser.set(_section, 'witch_path',

@@ -1,3 +1,9 @@
+TIPP3 v0.2
+----------
+#. Removed standalone code for BSCAMPP that was previously included under
+   ``tipp3/tools/bscampp``. Now ``bscampp`` is a requirement that will be
+   installed when TIPP3 is installed.
+
 TIPP3 v0.1
 ----------
 #. Added the full pipeline to create a customized TIPP reference package. Please

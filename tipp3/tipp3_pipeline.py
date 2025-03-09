@@ -187,11 +187,11 @@ def _init_parser(mode=None):
 
     # (1) DEFAULT abundance -- abundance profiling
     subparser_abs = subparsers.add_parser('abundance',
-            help="(Default) Abundance profiling on input reads.")
+        help="(Default) Abundance profiling on input reads.")
 
     # (2) download_refpkg -- download reference package to target directory
     subparser_refpkg = subparsers.add_parser('download_refpkg',
-            help="Download the latest TIPP3 reference package.")
+        help="Download the latest TIPP3 reference package.")
 
     # (3) TBD
 
@@ -209,8 +209,6 @@ def _init_parser(mode=None):
             'for classification.', 'Accepted format:'
             '.fa/.fasta/.fq/.fastq (can be compressed as a .gz file).']),
         required=True)
-    #TODO - not making this required and invoke download for TIPP3 refpkg
-    # if no refpkg is supplied
     basic_group.add_argument('-r', '--refpkg-path', '--refpkg',
             '--reference-package',
         type=str, help=' '.join(['Path to a TIPP3-compatible refpkg.',
@@ -257,22 +255,21 @@ def _init_parser(mode=None):
             "Miscellaneous options".upper(),
             ("Optional parameters for TIPP3 setup/config etc."))
     subparser_abs.groups['misc_group'] = misc_group
-    #misc_group.add_argument('--verbose', type=int,
-    #        help=' '.join(["Verbose level for logging.",
-    #        "0: error, 1: info, >1: debug. [default: 1]"]),
-    #        default=1, required=False)
+    #misc_group.add_argument('--bscampp-mode', type=str,
+    #    choices=['p', 'e'], default='e',
+    #    help='Base placement method to use in BSCAMPP. [default: (e)pa-ng]') 
     misc_group.add_argument('--alignment-only', action='store_const',
-            const=True, default=False,
-            help='Only obtain query alignments to marker genes and stop TIPP3.')
+        const=True, default=False,
+        help='Only obtain query alignments to marker genes and stop TIPP3.')
     misc_group.add_argument('--keeptemp', action='store_const', const=True,
-            help='Keep temporary files in the running process.',
-            default=False)
+        help='Keep temporary files in the running process.',
+        default=False)
     misc_group.add_argument('-y', '--bypass-setup', action='store_const',
-            const=True, default=True,
-            help=' '.join(['(Optional) Include this argument to bypass',
-                'the initial step when running TIPP3 to set up the',
-                'configuration directory (will use ~/.tipp3).',
-                'Note: By default this option is enabled.']))
+        const=True, default=True,
+        help=' '.join(['(Optional) Include this argument to bypass',
+            'the initial step when running TIPP3 to set up the',
+            'configuration directory (will use ~/.tipp3).',
+            'Note: By default this option is enabled.']))
 
 ######################### subcommand: download_refpkg #########################
     refpkg_basic_group = subparser_refpkg.add_argument_group(
@@ -280,10 +277,10 @@ def _init_parser(mode=None):
             ("Use this subcommand to download the latest TIPP3 reference "
              "package, and optionally decompress it for usage."))
     refpkg_basic_group.add_argument('-d', '--outdir',
-            type=str, help=' '.join(['Path to put the downloaded refpkg file.',
-                '[default: ./]']), default='./')
+        type=str, help=' '.join(['Path to put the downloaded refpkg file.',
+            '[default: ./]']), default='./')
     refpkg_basic_group.add_argument('--decompress', action='store_const',
-            const=True, help='After download, decompress the file for usage.',
-            default=False)
+        const=True, help='After download, decompress the file for usage.',
+        default=False)
 
     return parser
