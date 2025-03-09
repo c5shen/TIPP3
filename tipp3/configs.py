@@ -95,12 +95,9 @@ def set_valid_configuration(name, conf):
                     'Alignment method {} not implemented'.format(attr)
             elif k == 'placement_method':
                 pass
-                #assert int(attr).lower() in ['pplacer', 'bscampp'], \
-                #    'Placement method {} not implemented'.format(attr)
-            #elif k == 'path':
-            #    assert os.path.exists(os.path.realpath(str(attr))), \
-            #        '{} does not exist'.format(os.path.realpath(str(attr)))
-            setattr(Configs, k, attr)
+            # only set not None attribute
+            if attr is not None:
+                setattr(Configs, k, attr)
     elif name in valid_config_sections:
         setattr(Configs, name, conf)
     else:
@@ -217,7 +214,8 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
         k_attr = getattr(args, k)
         if k in Configs.__dict__:
             # valid argument that's defined in the Configs class
-            setattr(Configs, k, k_attr)
+            if k_attr is not None:
+                setattr(Configs, k, k_attr)
         else:
             # check if the argument is valid
             set_valid_configuration(k, k_attr)

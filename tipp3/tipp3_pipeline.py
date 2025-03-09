@@ -219,7 +219,7 @@ def _init_parser(mode=None):
         type=str, help='Version of the refpkg. [default: markers-v4]',
         default='markers-v4', required=False)
     basic_group.add_argument('--mode',
-        type=str, choices=['tipp3', 'tipp3-fast'], default=mode,
+        type=str, choices=['tipp3', 'tipp3-fast'], default=_mode,
         help=' '.join(['Preset mode for running TIPP3.', f'[default: {_mode}]',
             '\n\"tipp3\": the most accurate setting, with WITCH alignment',
             'and pplacer placement.',
