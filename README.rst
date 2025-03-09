@@ -66,7 +66,6 @@ Note and Acknowledgment
 TIPP3 includes and uses:
 
 #. `pplacer <https://github.com/matsen/pplacer>`__ (v1.1.alpha19).
-#. `Batch-SCAMPP <https://github.com/ewedell/BSCAMPP>`__ (v1.0.0).
 
 Installation
 ------------
