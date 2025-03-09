@@ -11,6 +11,10 @@ TIPP3 - Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
+* 3.6.2025 - Users can directly download the latest TIPP3 reference package
+  by running the subcommand ``run_tipp3.py download_refpkg``.
+* 3.2.2025 - **TIPP3 is now accepted at PLOS Computational Biology and will soon
+  be publicly available!**
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
