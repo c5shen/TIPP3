@@ -1,3 +1,11 @@
+TIPP3 v0.3a
+-----------
+#. Restructured some of the *Job classes to be more flexible with customized
+   parameters from ``main.config`` or ``-c custom.config``. E.g., now that you
+   can change any supported parameters of BSCAMPP in a customized config file.
+   See ``custom.config`` on the GitHub page for an example.
+#. Fixed an issue that overrides user-defined placement and alignment methods.
+
 TIPP3 v0.2
 ----------
 #. Removed standalone code for BSCAMPP that was previously included under

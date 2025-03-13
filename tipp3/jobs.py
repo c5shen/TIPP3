@@ -296,59 +296,77 @@ class WITCHAlignmentJob(Job):
 A BSCAMPP job that will run BSCAMPP for placing aligned query reads 
 '''
 class BscamppJob(Job):
-    def __init__(self, **kwargs):
+    def __init__(self,
+            path, query_alignment_path, backbone_alignment_path,
+            backbone_tree_path, tree_model_path, outdir, num_cpus,
+            **kwargs):
         Job.__init__(self)
         self.job_type = 'bscampp'
         
         # initialize parameters
-        self.path = ''
-        self.query_alignment_path = ''
-        self.backbone_alignment_path = ''
-        self.backbone_tree_path = ''
-        self.tree_model_path = ''
-        self.outdir = ''
-        self.num_cpus = 1
-        self.subtreesize = 2000
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.path = path
+        self.query_alignment_path = query_alignment_path
+        self.backbone_alignment_path = backbone_alignment_path
+        self.backbone_tree_path = backbone_tree_path
+        self.tree_model_path = tree_model_path
+        self.outdir = outdir
+        self.num_cpus = num_cpus
+        self.kwargs = kwargs
 
     def get_invocation(self):
         self.outpath = os.path.join(self.outdir, 'placement.jplace')
-        cmd = [self.path, '-b', str(self.subtreesize),
-                '-i', self.tree_model_path,
-                '-t', self.backbone_tree_path,
-                '-d', self.outdir, '-o', 'placement',
-                '-a', self.backbone_alignment_path,
+        cmd = [self.path,
                 '-q', self.query_alignment_path,
-                '--threads', str(self.num_cpus)]
+                '-a', self.backbone_alignment_path,
+                '-t', self.backbone_tree_path,
+                '-i', self.tree_model_path,
+                '-d', self.outdir,
+                '-o', 'placement',
+                '--num-cpus', str(self.num_cpus),
+                ]
+        # extend any additional kwargs specified for BSCAMPP
+        for k, v in self.kwargs.items():
+            # special case: not processing support_value (used later)
+            if k == 'support_value':
+                continue
+            param = k.replace('_', '-')
+            cmd.extend([f'--{param}', str(v)])
         return cmd, self.outpath 
 
 '''
 A pplacer-taxtastic job that runs pplacer with the taxtastic refpkg
 '''
 class PplacerTaxtasticJob(Job):
-    def __init__(self, **kwargs):
+    def __init__(self,
+            path, query_alignment_path, refpkg_path, outdir, num_cpus,
+            **kwargs):
         Job.__init__(self)
         self.job_type = 'pplacer-taxtastic'
 
-        self.path = ''
-        self.query_alignment_path = ''
-        self.refpkg_path = ''
-        self.outdir = ''
-        self.num_cpus = 1
+        self.path = path
+        self.query_alignment_path = query_alignment_path
+        self.refpkg_path = refpkg_path
+        self.outdir = outdir
+        self.num_cpus = num_cpus
         self.model_type = 'GTR'
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.kwargs = kwargs
 
     def get_invocation(self):
         self.outpath = os.path.join(self.outdir, 'placement.jplace')
-        cmd = [self.path, '-m', self.model_type,
+        cmd = [self.path,
+                '-m', self.model_type,
                 '-c', self.refpkg_path,
                 '-o', self.outpath,
                 '-j', str(self.num_cpus),
-                self.query_alignment_path]
+                self.query_alignment_path,
+                ]
+        ## extend any additional kwargs specified for BSCAMPP
+        #for k, v in self.kwargs.items():
+        #    # special case: not processing support_value (used later)
+        #    if k == 'support_value':
+        #        continue
+        #    param = k.replace('_', '-')
+        #    cmd.extend([f'--{param}', str(v)])
         return cmd, self.outpath
 
 '''

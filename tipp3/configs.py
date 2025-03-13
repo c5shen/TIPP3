@@ -224,11 +224,18 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     if Configs.command == 'abundance':
         # set up preset mode, TIPP3 or TIPP3-fast
         if Configs.mode == 'tipp3-fast':
-            Configs.alignment_method = 'blast'
-            Configs.placement_method = 'bscampp'
+            amethod, pmethod = 'blast', 'bscampp'
         elif Configs.mode == 'tipp3':
-            Configs.alignment_method = 'witch'
-            Configs.placement_method = 'pplacer-taxtastic'
+            amethod, pmethod = 'witch', 'pplacer-taxtastic'
+        else:
+            # default back to tipp3-fast
+            amethod, pmethod = 'blast', 'bscampp'
+
+        # only use --mode if the methods are not set by users
+        if Configs.alignment_method is None:
+            Configs.alignment_method = amethod
+        if Configs.placement_method is None:
+            Configs.placement_method = pmethod
 
         # Parallelization related
         if args.num_cpus > 0:
