@@ -1,6 +1,6 @@
 TIPP3 v0.3a
 -----------
-#. Restructured some of the *Job classes to be more flexible with customized
+#. Restructured some of the Job classes to be more flexible with customized
    parameters from ``main.config`` or ``-c custom.config``. E.g., now that you
    can change any supported parameters of BSCAMPP in a customized config file.
    See ``custom.config`` on the GitHub page for an example.
@@ -39,7 +39,7 @@ TIPP3 v0.1b1
 #. Included other minor bug fixes and code updates. 
 
 TIPP3 v0.1b
-----------
+-----------
 #. Included other minor bug fixes.
 #. Changed the default file name from ``tipp3.py`` to ``run_tipp3.py`` to avoid
    conflict with versioning and installed packages.
