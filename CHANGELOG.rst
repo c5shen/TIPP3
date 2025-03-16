@@ -5,6 +5,8 @@ TIPP3 v0.3a
    can change any supported parameters of BSCAMPP in a customized config file.
    See ``custom.config`` on the GitHub page for an example.
 #. Fixed an issue that overrides user-defined placement and alignment methods.
+#. Changed from using ``lz4`` to ``gzip`` on compressing intermediate files
+   for better compatibility.
 
 TIPP3 v0.2
 ----------

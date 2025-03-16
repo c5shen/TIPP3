@@ -43,15 +43,16 @@ def queryAlignment(refpkg, query_paths):
         # multi-level detect to avoid rerunning:
         # first detect if 'est.aln.fasta' exists
         d1_path = os.path.join(alignment_dir, 'est.aln.masked.fasta')
-        d2_path = os.path.join(alignment_dir, 'est.aln.masked.fasta.lz4')
+        d2_path = os.path.join(alignment_dir, 'est.aln.masked.fasta.gz')
         skip_alignment = False
         if os.path.exists(d1_path) and os.stat(d1_path).st_size > 0:
-            # lz4 the file and remove d1_path
+            # gzip the file (if successful, will remove d1_path)
             _LOG.info(f"Found existing alignment: {d1_path}, compressing...")
-            os.system(f"lz4 --rm -f -q {d1_path} {d2_path}")
+            #os.system(f"lz4 --rm -f -q {d1_path} {d2_path}")
+            os.system(f"gzip {d1_path}")
             skip_alignment = True
         elif os.path.exists(d2_path) and os.stat(d2_path).st_size > 0:
-            # keep the lz4 file and avoid re-running the alignment step
+            # keep the gzip file and avoid re-running the alignment step
             _LOG.info(f"Found existing compressed alignment: {d2_path}")
             skip_alignment = True
 
@@ -75,9 +76,11 @@ def queryAlignment(refpkg, query_paths):
                 raise NotImplementedError(
                         f"Alignment method {Configs.alignment_method} " \
                         " is not implemented yet.")
+            # gzip the output masked file
+            # raw_alignment_path == d1_path
             raw_alignment_path = alignment_job.run(logging=True)
-            # zip the output masked file
-            os.system(f"lz4 --rm -f -q {raw_alignment_path} {d2_path}")
+            os.system(f"gzip {raw_alignment_path}")
+            #os.system(f"lz4 --rm -f -q {raw_alignment_path} {d2_path}")
 
         # extract query alignment from {d2_path}
         queryunaln = Alignment(); queryunaln.read_file_object(query_path)
