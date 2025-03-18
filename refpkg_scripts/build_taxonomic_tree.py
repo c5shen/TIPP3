@@ -11,7 +11,7 @@ Converted for use in Python 3 by Mike Nute some time in 2018.
 
 @author: namphuon
 
-Edited slightly by Chengze Shen @ 2025.02.26
+Edited by Chengze Shen @ 2025.02.26
 '''
 from dendropy import Tree, Node, Taxon
 import sys
@@ -130,5 +130,3 @@ if __name__ == '__main__':
     output.write(str(tree) + ";\n");
 
     output.close()
-    #lines.close()
-#Usage python build_taxonomic_tree.py taxonomy.table species.updated.txt unrefined.taxonomy

@@ -1,4 +1,4 @@
-TIPP3 - Taxonomic Identification and Phylogenetic Profiling
+TIPP3 and TIPP3-fast: Taxonomic Identification and Phylogenetic Profiling
 ===========================================================
 |PyPI version| |Python version| |Build| |License| |CHANGELOG| |Wiki|
   
