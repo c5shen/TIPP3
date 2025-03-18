@@ -74,10 +74,10 @@ if __name__ == '__main__':
     taxid_reassign = {}
     for node in tree.preorder_node_iter():
         #print(str(node.taxon))
-        if (len(node.child_nodes()) == 1 and
+        if (len(node.child_nodes()) >= 1 and
                 node.taxon and node.taxon.label in species):
-            print(f"WARNING: node (taxid {node.taxon.label}) unifurcates "
-                  "and have assigned sequences!")
+            print(f"WARNING: node (taxid {node.taxon.label}) is internal "
+                  "but have assigned sequences!")
             for cnode in node.preorder_iter():
                 if (cnode.taxon.label != node.taxon.label and
                         cnode.taxon.label in species):
