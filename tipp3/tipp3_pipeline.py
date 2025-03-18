@@ -63,7 +63,7 @@ def tipp3_pipeline(*args, **kwargs):
         refpkg = loadReferencePackage(Configs.refpkg_path, Configs.refpkg_version)
 
         # (1) read binning against the TIPP3 refpkg using BLAST
-        query_paths, query_alignment_paths = queryBinning(refpkg)
+        query_paths, query_alignment_paths = queryBinning(refpkg, Configs.query_path)
         s2 = time.time()
         _LOG.info(f"Runtime for mapping reads to marker genes (seconds): {s2 - s1}") 
 

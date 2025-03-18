@@ -1,5 +1,6 @@
 TIPP3 v0.3a
 -----------
+#. Added a missing check for input file existence.
 #. Adjusted scripts for customizing a TIPP3 reference package. 
 #. Restructured some of the Job classes to be more flexible with customized
    parameters from ``main.config`` or ``-c custom.config``. E.g., now that you

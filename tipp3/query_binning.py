@@ -21,9 +21,13 @@ _LOG = get_logger(__name__)
 Map reads to refpkg using BLASTN, then process the reads to extract
 their assignments and/or alignments to marker genes
 '''
-def queryBinning(refpkg):
+def queryBinning(refpkg, query_path):
     database_path = refpkg['blast']['database']
     _LOG.info(f"Initializing BlastnJob with BLASTN database: {database_path}")
+
+    # check if query_path exists
+    if not os.path.exists(query_path):
+        raise FileNotFoundError(f"{query_path} does not exist!")
 
     blastn_outdir = os.path.join(Configs.outdir, 'blast_output')
     if not os.path.isdir(blastn_outdir):
@@ -41,7 +45,7 @@ def queryBinning(refpkg):
 
         # run BLASTN
         job = BlastnJob(path=Configs.blastn_path,
-                query_path=Configs.query_path,
+                query_path=query_path,
                 database_path=database_path,
                 outdir=blastn_outdir,
                 num_threads=Configs.num_cpus)
