@@ -49,10 +49,9 @@ class Configs:
     config_file = None     # Added @ 7.25.2024 
 
     # choices of parameters
-    # default to TIPP3-fast
     mode = 'tipp3-fast'
-    alignment_method = 'blast'  # or blast
-    placement_method = 'bscampp'  # or other method
+    alignment_method = 'blast'      # alignment method for reads
+    placement_method = 'bscampp'    # placement method for reads
 
     # binary paths (from config file)
     # these are just the default ones. User can modularize the method
@@ -67,8 +66,8 @@ class Configs:
     # reference package dir path
     refpkg_version = 'markers-v4'
 
-
     # miscellaneous
+    bscampp_mode = None         # base method for BSCAMPP
     alignment_only = False
     keeptemp = False
     bypass_setup = True
@@ -207,9 +206,8 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
     args = parser.parse_args(cmdline_default + cmdline_user + cmdline_args,
             namespace=default_args)
 
-    # store sub-command given
-    Configs.command = args.command
     # directly add all arguments that's defined in the Configs class
+    Configs.command = args.command
     for k in args.__dict__.keys():
         k_attr = getattr(args, k)
         if k in Configs.__dict__:
@@ -220,8 +218,19 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
             # check if the argument is valid
             set_valid_configuration(k, k_attr)
 
-    ######### subcommand: abundance ##########
-    if Configs.command == 'abundance':
+    # Parallelization related
+    if args.num_cpus > 0:
+        Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
+    else:
+        Configs.num_cpus = os.cpu_count()
+
+    # verbose level
+    verbose = os.getenv('TIPP_LOGGING_LEVEL', 'info').upper()
+    if verbose in logging_levels:
+        Configs.verbose = verbose
+
+    ######### subcommands: abundance/detection ##########
+    if Configs.command == 'abundance' or Configs.command == 'detection':
         # set up preset mode, TIPP3 or TIPP3-fast
         if Configs.mode == 'tipp3-fast':
             amethod, pmethod = 'blast', 'bscampp'
@@ -236,17 +245,6 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
             Configs.alignment_method = amethod
         if Configs.placement_method is None:
             Configs.placement_method = pmethod
-
-        # Parallelization related
-        if args.num_cpus > 0:
-            Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
-        else:
-            Configs.num_cpus = os.cpu_count()
-
-        # verbose level
-        verbose = os.getenv('TIPP_LOGGING_LEVEL', 'info').upper()
-        if verbose in logging_levels:
-            Configs.verbose = verbose
     ############ subcommand: download_refpkg #############
     elif Configs.command == 'download_refpkg':
         pass

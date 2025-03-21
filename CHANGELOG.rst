@@ -1,3 +1,8 @@
+TIPP3 v0.3b
+-----------
+#. Removed additional temp files that are generated when merging
+   classifications.
+
 TIPP3 v0.3a
 -----------
 #. Added a missing check for input file existence.

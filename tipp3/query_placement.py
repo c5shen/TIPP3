@@ -72,6 +72,7 @@ def queryPlacement(refpkg, query_alignment_paths):
                     backbone_tree_path=refpkg[marker]['additional-raxml-br-tree'],
                     tree_model_path=refpkg[marker]['additional-raxml-model-file'],
                     outdir=placement_dir,
+                    placement_method=Configs.bscampp_mode,
                     num_cpus=Configs.num_cpus,
                     **additional_kwargs) 
         placement_path = placement_job.run(logging=True)

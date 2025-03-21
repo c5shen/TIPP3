@@ -252,6 +252,12 @@ def getClassification(marker, taxonomy_path, mapping_path,
                 outdir=outdir, classification_path=classification_path)
         _ = tippjsonmerger_job.run(stdin=stdindata)
 
+    # remove reordered jplace file and tippjsonjob jplace output
+    to_remove = [jplace_path, os.path.join(outdir, 'tippjsonmerger.jplace')]
+    for item in to_remove:
+        if os.path.exists(item):
+            os.remove(item)
+
     return marker, classification_path
 
 '''

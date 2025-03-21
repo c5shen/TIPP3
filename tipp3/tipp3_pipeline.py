@@ -49,7 +49,7 @@ def tipp3_pipeline(*args, **kwargs):
 
     if Configs.command == 'download_refpkg':
         downloadReferencePackage(Configs.outdir, Configs.decompress)
-    elif Configs.command == 'abundance':
+    elif Configs.command == 'abundance' or Configs.command == 'detection':
         # initialize ProcessPoolExecutor
         _LOG.warning('Initializing ProcessorPoolExecutor instance...')
         pool = ProcessPoolExecutor(Configs.num_cpus,
@@ -193,7 +193,9 @@ def _init_parser(mode=None):
     subparser_refpkg = subparsers.add_parser('download_refpkg',
         help="Download the latest TIPP3 reference package.")
 
-    # (3) TBD
+    # (3) species detection -- detecting if species is present or not
+    subparser_refpkg = subparsers.add_parser('detection',
+        help="Species detection on input reads.")
 
 ########################## subcommand: abundance ##############################
     # basic settings
@@ -253,11 +255,15 @@ def _init_parser(mode=None):
     # miscellaneous group
     misc_group = subparser_abs.add_argument_group(
             "Miscellaneous options".upper(),
-            ("Optional parameters for TIPP3 setup/config etc."))
+            ("Additional parameters for TIPP3 setup/config etc."))
     subparser_abs.groups['misc_group'] = misc_group
-    #misc_group.add_argument('--bscampp-mode', type=str,
-    #    choices=['p', 'e'], default='e',
-    #    help='Base placement method to use in BSCAMPP. [default: (e)pa-ng]') 
+    misc_group.add_argument('--bscampp-mode', type=str,
+        choices=['pplacer', 'epa-ng'], default=None,
+        help=' '.join(['Base placement method to use in BSCAMPP,',
+            'currently supporting pplacer and epa-ng.',
+            'Has priority and will override settings in',
+            'main.config or a customized config file.'
+            '[default: None]'])) 
     misc_group.add_argument('--alignment-only', action='store_const',
         const=True, default=False,
         help='Only obtain query alignments to marker genes and stop TIPP3.')
