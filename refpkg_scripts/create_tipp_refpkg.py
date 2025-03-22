@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os, sys, time
+import treeswift
 from subprocess import Popen, PIPE, STDOUT
+from collections import defaultdict
 
 import concurrent.futures
 from concurrent.futures import ProcessPoolExecutor
@@ -23,6 +25,8 @@ def runner(args):
             'placement-tree-stats': 'est.fasttree.log',
             'seq-to-taxid-map': 'species.updated.mapping',
             'taxonomy': 'all_taxon.taxonomy',
+            'taxonomy-tree': 'unrefined.taxonomy',
+            'taxonomy-tree-renamed': 'unrefined.taxonomy.renamed',
             'additional-raxml-br-tree': 'est.raxml.bestTree.rooted',
             'additional-raxml-model-file': 'est.raxml.bestModel',
             }
@@ -54,6 +58,37 @@ def runner2(args):
         #            hmm_path, alignment_path)
         #    os.system(hmmcmd)
     return gene
+
+def runner3(args):
+    gene, taxdb_path, tree_path, mapping_path = args
+
+    tre = treeswift.read_tree_newick(tree_path)
+    taxa = set([x for x in tre.labels(internal=False)])
+
+    taxids = set()
+    with open(mapping_path, 'r') as f:
+        # first line
+        for line in f:
+            if line.startswith('seqname'):
+                continue
+            parts = line.strip().split(',')
+            name, taxid = parts
+            if name in taxa:
+                taxids.add(taxid)
+
+    # obtain the species taxids based on the given taxon ids
+    tmp_path = f'{gene}_taxids.tmp'
+    with open(tmp_path, 'w') as f:
+        f.write('\n'.join(taxids))
+    cmd = f"taxit get_lineage {taxdb_path} $(cat {tmp_path}) | awk /,species,/"
+    ret = os.popen(cmd).read().strip().split('\n')
+    # each line is the included species taxid of the original taxon id
+    species_ids = set(x.split(',')[1] for x in ret)
+    try:
+        os.remove(tmp_path)
+    except OSError:
+        pass
+    return gene, species_ids
 
 def clean_taxonomy_table(inpath, outpath):
     # kept columns
@@ -141,9 +176,31 @@ def main():
     clean_taxonomy_table(taxtable_path, taxonomy_path)
     try:
         os.remove(taxtable_path)
-    except IOError:
+    except OSError:
         pass
     filemap.write('taxonomy:taxonomy = taxonomy/all_taxon.taxonomy\n')
+
+    # obtain the list of marker genes each species taxid appears in
+    futures = []
+    for gene in genes:
+        indir = os.path.join(workdir, gene)
+        tree_path = os.path.join(indir, 'unrefined.taxonomy.renamed')
+        mapping_path = os.path.join(indir, 'species.updated.mapping')
+        args = (gene, taxdb_path, tree_path, mapping_path)
+        futures.append(pool.submit(runner3, args)) 
+    species_to_marker = defaultdict(list)
+    for future in concurrent.futures.as_completed(futures):
+        gene, species_ids = future.result()
+        for species in species_ids:
+            species_to_marker[species].append(gene)
+    # write to the corresponding path
+    species_marker_path = os.path.join(taxdir, 'species_to_marker.tsv')
+    with open(species_marker_path, 'w') as f:
+        header = 'tax_id\tnum_marker\tmarker\n'
+        f.write(header)
+        for species, l_markers in species_to_marker.items():
+            f.write(f"{species}\t{len(l_markers)}\t{','.join(l_markers)}\n")
+    filemap.write('taxonomy:species-to-marker-map = taxonomy/species_to_marker.tsv\n')
 
     # create a blast/ directory with all blast related items
     blastdir = os.path.join(pkgdir, 'blast')
