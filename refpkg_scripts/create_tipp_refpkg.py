@@ -286,6 +286,10 @@ def main():
         seq_info_path = os.path.join(indir, 'species.updated.mapping')
         os.system(f"cp {seq_info_path} {outdir}/")
 
+        # copy over taxonomy trees before and after renaming leaf nodes
+        taxonomy_tree_paths = os.path.join(indir, 'unrefined.taxonomy*')
+        os.system(f"cp {taxonomy_tree_paths} {outdir}/")
+
         # use a single taxonomy file for all marker genes (i.e., the one
         # with all taxids)
         taxonomy_path = os.path.join(taxdir, 'all_taxon.taxonomy')

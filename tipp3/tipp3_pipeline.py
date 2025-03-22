@@ -8,8 +8,9 @@ from tipp3.refpkg_loader import loadReferencePackage, downloadReferencePackage
 from tipp3.query_binning import queryBinning 
 from tipp3.query_alignment import queryAlignment
 from tipp3.query_placement import queryPlacement
-from tipp3.query_abundance import queryAbundance 
-from tipp3.helpers.general_tools import *
+from tipp3.query_abundance import getAllClassification, getAbundanceProfile, \
+        getSpeciesDetection 
+from tipp3.helpers.general_tools import SmartHelpFormatter
 
 from multiprocessing import Lock, Manager
 from concurrent.futures import ProcessPoolExecutor
@@ -86,10 +87,19 @@ def tipp3_pipeline(*args, **kwargs):
         s4 = time.time()
         _LOG.info(f"Runtime for placing reads to marker gene taxonomies (seconds): {s4 - s3}") 
 
-        # (4) collect results and abundance profile
-        queryAbundance(refpkg, query_placement_paths, pool, lock)
-        s5 = time.time()
-        _LOG.info(f"Runtime for obtaining abundance profile (seconds): {s5 - s4}") 
+        # (4) collect classification results
+        all_classification_path, filtered_paths = getAllClassification(
+                refpkg, query_placement_paths, pool, lock)
+        # --> Abundance profile
+        if Configs.command == 'abundance':
+            getAbundanceProfile(refpkg, filtered_paths)
+            s5 = time.time()
+            _LOG.info(f"Runtime for obtaining abundance profile (seconds): {s5 - s4}") 
+        # --> Species detection
+        elif Configs.command == 'detection':
+            getSpeciesDetection(refpkg, filtered_paths)
+            s5 = time.time()
+            _LOG.info(f"Runtime for detecting species (seconds): {s5 - s4}") 
 
         # close ProcessPoolExecutor
         _LOG.warning('Closing ProcessPoolExecutor instance...')
@@ -187,95 +197,100 @@ def _init_parser(mode=None):
 
     # (1) DEFAULT abundance -- abundance profiling
     subparser_abs = subparsers.add_parser('abundance',
-        help="(Default) Abundance profiling on input reads.")
+        help="(Default) Abundance profiling on input reads.",
+        formatter_class=SmartHelpFormatter)
 
     # (2) download_refpkg -- download reference package to target directory
     subparser_refpkg = subparsers.add_parser('download_refpkg',
-        help="Download the latest TIPP3 reference package.")
+        help="Download the latest TIPP3 reference package.",
+        formatter_class=SmartHelpFormatter)
 
     # (3) species detection -- detecting if species is present or not
-    subparser_refpkg = subparsers.add_parser('detection',
-        help="Species detection on input reads.")
+    subparser_detection = subparsers.add_parser('detection',
+        help="Species detection on input reads.",
+        formatter_class=SmartHelpFormatter)
 
-########################## subcommand: abundance ##############################
-    # basic settings
-    basic_group = subparser_abs.add_argument_group(
-            "Basic parameters".upper(),
-            ("These are basic fields for running TIPP3. "
-             "Users need to provide the path to a TIPP3-compatible refpkg "
-             "and the path to the query reads they wish to profile."))
-    subparser_abs.groups = dict()
-    subparser_abs.groups['basic_group'] = basic_group
-    basic_group.add_argument('-i', '--query-path', type=str,
-        help=' '.join(['Path to a set of unaligned query reads',
-            'for classification.', 'Accepted format:'
-            '.fa/.fasta/.fq/.fastq (can be compressed as a .gz file).']),
-        required=True)
-    basic_group.add_argument('-r', '--refpkg-path', '--refpkg',
-            '--reference-package',
-        type=str, help=' '.join(['Path to a TIPP3-compatible refpkg.',
-            'Use subcommand \'download_refpkg\' to download the latest',
-            'TIPP3 reference package.']),
-        required=False, default=None)
-    basic_group.add_argument('--refpkg-version',
-        type=str, help='Version of the refpkg. [default: markers-v4]',
-        default='markers-v4', required=False)
-    basic_group.add_argument('--mode',
-        type=str, choices=['tipp3', 'tipp3-fast'], default=_mode,
-        help=' '.join(['Preset mode for running TIPP3.', f'[default: {_mode}]',
-            '\n\"tipp3\": the most accurate setting, with WITCH alignment',
-            'and pplacer placement.',
-            '\n\"tipp3-fast\": the fastest setting, with BLAST alignment',
-            'and Batch-SCAMPP placement.',
-            '\nThe mode will be overridden by parameters --alignment-method',
-            'and --placement-method.']), required=False)
-    basic_group.add_argument('--alignment-method',
-        type=str, choices=['witch', 'blast', 'hmm'], default=None,
-        help=' '.join(['Alignment method to use for aligning reads',
-            'to marker genes. [default: using --mode]']),
-        required=False)
-    basic_group.add_argument('--placement-method',
-        type=str, choices=['pplacer-taxtastic', 'bscampp'], default=None,
-        help=' '.join(['Placement method to use for placing aligned reads',
-            'to marker gene taxonomic trees. [default: using --mode]']),
-        required=False)
-    basic_group.add_argument('-c', '--config-file',
-        type=str, help=' '.join(['Path to a user-defined config file.',
-            'see an example at\n',
-            'https://github.com/c5shen/TIPP3/blob/main/custom.config',
-            '[default: None]']),
-        required=False, default=None)
-    basic_group.add_argument('-d', '--outdir',
-        type=str, help='Path to the desired output directory [default: ./tipp3_output]',
-        required=False, default='./tipp3_output')
-    basic_group.add_argument('-t', '--num-cpus',
-        type=int, help='Number of CPUs for multi-processing. [default: -1 (all)]',
-        required=False, default=-1)
+#################### subcommand: abundance/detection ##########################
+    # abundance and detection share the same groups of arguments
+    for _subparser in [subparser_abs, subparser_detection]:
+        _subparser.groups = dict()
+        # basic settings
+        basic_group = _subparser.add_argument_group(
+                "Basic parameters".upper(),
+                ("These are basic fields for running TIPP3. "
+                 "Users need to provide the path to a TIPP3-compatible refpkg "
+                 "and the path to the query reads they wish to profile."))
+        _subparser.groups['basic_group'] = basic_group
+        basic_group.add_argument('-i', '--query-path', type=str,
+            help=' '.join(['Path to a set of unaligned query reads',
+                'for classification.', 'Accepted format:'
+                '.fa/.fasta/.fq/.fastq (can be compressed as a .gz file).']),
+            required=True)
+        basic_group.add_argument('-r', '--refpkg-path', '--refpkg',
+                '--reference-package',
+            type=str, help=' '.join(['Path to a TIPP3-compatible refpkg.',
+                'Use subcommand \'download_refpkg\' to download the latest',
+                'TIPP3 reference package.']),
+            required=False, default=None)
+        basic_group.add_argument('--refpkg-version',
+            type=str, help='Version of the refpkg. [default: markers-v4]',
+            default='markers-v4', required=False)
+        basic_group.add_argument('--mode',
+            type=str, choices=['tipp3', 'tipp3-fast'], default=_mode,
+            help=' '.join(['Preset mode for running TIPP3.', f'[default: {_mode}]',
+                '\n\"tipp3\": the most accurate setting, with WITCH alignment',
+                'and pplacer placement.',
+                '\n\"tipp3-fast\": the fastest setting, with BLAST alignment',
+                'and Batch-SCAMPP placement.',
+                'The mode will be overridden by parameters --alignment-method',
+                'and --placement-method.']), required=False)
+        basic_group.add_argument('--alignment-method',
+            type=str, choices=['witch', 'blast', 'hmm'], default=None,
+            help=' '.join(['Alignment method to use for aligning reads',
+                'to marker genes. [default: using --mode]']),
+            required=False)
+        basic_group.add_argument('--placement-method',
+            type=str, choices=['pplacer-taxtastic', 'bscampp'], default=None,
+            help=' '.join(['Placement method to use for placing aligned reads',
+                'to marker gene taxonomic trees. [default: using --mode]']),
+            required=False)
+        basic_group.add_argument('-c', '--config-file',
+            type=str, help=' '.join(['Path to a user-defined config file.',
+                'see an example at',
+                'https://github.com/c5shen/TIPP3/blob/main/custom.config',
+                '[default: None]']),
+            required=False, default=None)
+        basic_group.add_argument('-d', '--outdir',
+            type=str, help='Path to the desired output directory [default: ./tipp3_output]',
+            required=False, default='./tipp3_output')
+        basic_group.add_argument('-t', '--num-cpus',
+            type=int, help='Number of CPUs for multi-processing. [default: -1 (all)]',
+            required=False, default=-1)
 
-    # miscellaneous group
-    misc_group = subparser_abs.add_argument_group(
-            "Miscellaneous options".upper(),
-            ("Additional parameters for TIPP3 setup/config etc."))
-    subparser_abs.groups['misc_group'] = misc_group
-    misc_group.add_argument('--bscampp-mode', type=str,
-        choices=['pplacer', 'epa-ng'], default=None,
-        help=' '.join(['Base placement method to use in BSCAMPP,',
-            'currently supporting pplacer and epa-ng.',
-            'Has priority and will override settings in',
-            'main.config or a customized config file.'
-            '[default: None]'])) 
-    misc_group.add_argument('--alignment-only', action='store_const',
-        const=True, default=False,
-        help='Only obtain query alignments to marker genes and stop TIPP3.')
-    misc_group.add_argument('--keeptemp', action='store_const', const=True,
-        help='Keep temporary files in the running process.',
-        default=False)
-    misc_group.add_argument('-y', '--bypass-setup', action='store_const',
-        const=True, default=True,
-        help=' '.join(['(Optional) Include this argument to bypass',
-            'the initial step when running TIPP3 to set up the',
-            'configuration directory (will use ~/.tipp3).',
-            'Note: By default this option is enabled.']))
+        # miscellaneous group
+        misc_group = _subparser.add_argument_group(
+                "Miscellaneous options".upper(),
+                ("Additional parameters for TIPP3 setup/config etc."))
+        _subparser.groups['misc_group'] = misc_group
+        misc_group.add_argument('--bscampp-mode', type=str,
+            choices=['pplacer', 'epa-ng'], default=None,
+            help=' '.join(['Base placement method to use in BSCAMPP,',
+                'currently supporting pplacer and epa-ng.',
+                'Has priority and will override settings in',
+                'main.config or a customized config file.'
+                '[default: None]'])) 
+        misc_group.add_argument('--alignment-only', action='store_const',
+            const=True, default=False,
+            help='Only obtain query alignments to marker genes and stop TIPP3.')
+        misc_group.add_argument('--keeptemp', action='store_const', const=True,
+            help='Keep temporary files in the running process.',
+            default=False)
+        misc_group.add_argument('-y', '--bypass-setup', action='store_const',
+            const=True, default=True,
+            help=' '.join(['(Optional) Include this argument to bypass',
+                'the initial step when running TIPP3 to set up the',
+                'configuration directory (will use ~/.tipp3).',
+                'Note: By default this option is enabled.']))
 
 ######################### subcommand: download_refpkg #########################
     refpkg_basic_group = subparser_refpkg.add_argument_group(

@@ -53,9 +53,15 @@ elif [[ $scenario == 4 ]]; then
         -t $t
 elif [[ $scenario == 5 ]]; then
     # TIPP3-fast (BLAST+BSCAMPP) with .gz input type (fastq file)
-    inpath=data/illumina.small2.queries.fq.gz
+    inpath=data/illumina.small.queries.fq.gz
     outdir=tipp3_scenario5
     $bin abundance -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
+        --alignment-method blast --placement-method bscampp \
+        -t $t
+elif [[ $scenario == 6 ]]; then
+    # TIPP3-fast with species detection
+    outdir=tipp3_scenario6
+    $bin detection -i ${inpath} --reference-package ${refpkg} --outdir ${outdir} \
         --alignment-method blast --placement-method bscampp \
         -t $t
 fi

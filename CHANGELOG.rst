@@ -1,5 +1,14 @@
 TIPP3 v0.3b
 -----------
+#. Added basic species detection functionality (WIP), invoked by subcommand
+   ``run_tipp3.py detection [parameters]``. The output will be under the output
+   directory named ``detected.tsv``.
+#. Added new files to the reference package that refer to a marker gene's
+   taxonomy tree (before and after renaming leaf nodes), and a mapping between
+   all species taxid to the list of marker genes they appear in. See
+   ``refpkg_scripts/create_tipp_refpkg.py`` for more details.
+#. Improved line breaking in help texts by implementing Panzi's
+   `SmartFormatter <https://gist.github.com/panzi/b4a51b3968f67b9ff4c99459fb9c5b3d>`__.
 #. Removed additional temp files that are generated when merging
    classifications.
 

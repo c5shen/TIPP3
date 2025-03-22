@@ -16,12 +16,103 @@ _LOG = get_logger(__name__)
 ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom']
 
 '''
-Function to extract taxonomic information from all query read placements
-and aggregate to form an abundance profile
+Function to detect existing species based on all read classifications
+Also can implement for detection at other taxonomic levels (default to species)
 '''
-def queryAbundance(refpkg, query_placement_paths, pool, lock):
+def getSpeciesDetection(refpkg, filtered_paths, rank='species'):
+    _LOG.info(f"Detecting at level: {rank.upper()}")
+    # read in species to marker map from refpkg['taxonomy']
+    species_to_marker = parseSpeciesToMarker(
+            refpkg['taxonomy']['species-to-marker-map'])
+    # read in taxid_map from refpkg
+    taxid_map = parseTaxonomy(refpkg['taxonomy']['taxonomy'])
+
+    # find the idx position of corresponding rank
+    try:
+        rank_idx = ranks.index(rank)
+    except ValueError:
+        # default to species
+        rank_idx = 0
+
+    # go over each read classification and determine the species it detects
+    detected = defaultdict(set)
+    # fields: fragment_name \t species \t genus \t ...
+    for marker, filtered_path in filtered_paths.items():
+        with open(filtered_path, 'r') as f:
+            # skip header
+            for line in f:
+                if line.startswith('fragment'):
+                    continue
+                parts = line.strip().split('\t')
+                # find the correpsonding taxid for the level we want to detect
+                taxid = parts[rank_idx+1]
+                if taxid != 'NA':
+                    taxid = int(taxid)
+                    detected[taxid].add(marker)
+
+    # check the total number of mapped markers for each taxid
+    # TODO: finish the simple thresholding based on experimental results
+    outpath = os.path.join(Configs.outdir, f"detected.tsv")
+    _LOG.info(f"Writing detected species to {outpath}")
+    with open(outpath, 'w') as f:
+        f.write("taxa\ttaxid\tvoted_marker\ttotal_marker\n")
+        taxids = sorted([k for k in detected.keys()],
+                key=lambda x: len(detected[x]), reverse=True)
+        for taxid in taxids:
+            taxname = taxid_map[taxid][0]
+            voted_marker = len(detected[taxid])
+            total_marker = len(species_to_marker[taxid])
+            f.write(f"{taxname}\t{taxid}\t{voted_marker}\t{total_marker}\n")
+
+'''
+Function to parse filtered classification files and aggregate their abundances
+to produce the abundance profile on all taxonomic levels
+'''
+def getAbundanceProfile(refpkg, filtered_paths):
+    global ranks
+    _LOG.info("Aggregating abundances for a profile")
+
+    # initializing abundance profile at each taxonomic level
+    abundance_profile = {}
+    for rank in ranks:
+        abundance_profile[rank] = defaultdict(float)
+    
+    # read in taxid_map from refpkg
+    taxid_map = parseTaxonomy(refpkg['taxonomy']['taxonomy'])
+
+    # aggregating results from all markers
+    for marker, filtered_path in filtered_paths.items():
+        updateAbundanceProfile(filtered_path, abundance_profile)
+
+    # compute percentage at each rank
+    _LOG.info("Writing abundance profiles at each taxonomic level to "
+            f"{Configs.outdir}") 
+    for rank in ranks:
+        rank_sum = sum(abundance_profile[rank].values())
+        for taxid in abundance_profile[rank].keys():
+            abundance_profile[rank][taxid] /= rank_sum
+
+        # write to Configs.outdir as abundance.<rank>.tsv
+        outpath = os.path.join(Configs.outdir, f"abundance.{rank}.tsv")
+        slist = sorted([(k, v) for k, v in abundance_profile[rank].items()],
+                key=lambda x: x[1], reverse=True)
+        with open(outpath, 'w') as f:
+            f.write('taxa\ttaxid\tabundance\n')
+            for (taxid, abundance) in slist:
+                # unclassified
+                if taxid == 0:
+                    f.write('unclassified\t0\t{}\n'.format(abundance))
+                else:
+                    taxname = taxid_map[taxid][0]
+                    f.write('{}\t{}\t{}\n'.format(taxname, taxid, abundance))
+        _LOG.info(f"Finished written rank: {rank}") 
+
+'''
+Function to obtain all read classifications
+'''
+def getAllClassification(refpkg, query_placement_paths, pool, lock):
     # (1) obtain classification
-    _LOG.info("Obtaining read classification from each marker gene")
+    _LOG.info("Obtaining read classification from all marker genes")
     classification_paths = {} 
 
     # failsafe when no placement file are given
@@ -94,51 +185,7 @@ def queryAbundance(refpkg, query_placement_paths, pool, lock):
                 header = True
             f.write('\n'.join(lines[1:]) + '\n')
 
-    # (3) aggregate classifications to form an abundance profile
-    abundance_profile = getAbundanceProfile(refpkg, filtered_paths)
-
-'''
-Function to parse filtered classification files and aggregate their abundances
-to produce the abundance profile on all taxonomic levels
-'''
-def getAbundanceProfile(refpkg, filtered_paths):
-    global ranks
-    _LOG.info("Aggregating abundances for a profile")
-
-    # initializing abundance profile at each taxonomic level
-    abundance_profile = {}
-    for rank in ranks:
-        abundance_profile[rank] = defaultdict(float)
-    
-    # read in taxid_map from refpkg
-    taxid_map = parseTaxonomy(refpkg['taxonomy']['taxonomy'])
-
-    # aggregating results from all markers
-    for marker, filtered_path in filtered_paths.items():
-        updateAbundanceProfile(filtered_path, abundance_profile)
-
-    # compute percentage at each rank
-    _LOG.info("Writing abundance profiles at each taxonomic level to "
-            f"{Configs.outdir}") 
-    for rank in ranks:
-        rank_sum = sum(abundance_profile[rank].values())
-        for taxid in abundance_profile[rank].keys():
-            abundance_profile[rank][taxid] /= rank_sum
-
-        # write to Configs.outdir as abundance.<rank>.tsv
-        outpath = os.path.join(Configs.outdir, f"abundance.{rank}.tsv")
-        slist = sorted([(k, v) for k, v in abundance_profile[rank].items()],
-                key=lambda x: x[1], reverse=True)
-        with open(outpath, 'w') as f:
-            f.write('taxa\ttaxid\tabundance\n')
-            for (taxid, abundance) in slist:
-                # unclassified
-                if taxid == 0:
-                    f.write('unclassified\t0\t{}\n'.format(abundance))
-                else:
-                    taxname = taxid_map[taxid][0]
-                    f.write('{}\t{}\t{}\n'.format(taxname, taxid, abundance))
-        _LOG.info(f"Finished written rank: {rank}") 
+    return all_classification_path, filtered_paths
 
 '''
 Function to update a given abundance profile with the new results
@@ -165,9 +212,9 @@ def updateAbundanceProfile(inpath, abundance_profile):
 '''
 Function to parse a given taxonomy file (all_taxon.taxonomy)
 '''
-def parseTaxonomy(taxonomy_path):
+def parseTaxonomy(inpath):
     taxid_map = {}
-    with open(taxonomy_path, 'r') as f:
+    with open(inpath, 'r') as f:
         for line in f:
             # skip header
             if line.startswith('tax_id'):
@@ -177,6 +224,23 @@ def parseTaxonomy(taxonomy_path):
                 int(parts[0]), parts[2], int(parts[1]), parts[3]
             taxid_map[taxid] = (taxname, parent_id, rank)
     return taxid_map
+
+'''
+Function to parse a given species to marker map file (species_to_marker.tsv)
+'''
+def parseSpeciesToMarker(inpath):
+    species_to_marker = defaultdict(list)
+    with open(inpath, 'r') as f:
+        # fields: tax_id \t num_marker \t marker
+        for line in f:
+            # skip header
+            if line.startswith('tax_id'):
+                continue
+            parts = line.strip().split('\t')
+            species, num_marker, markers = \
+                int(parts[0]), int(parts[1]), parts[2].split(',')
+            species_to_marker[species] = markers 
+    return species_to_marker
 
 '''
 Function to reorder a .jplace file to a standard format for reading
@@ -263,7 +327,7 @@ def getClassification(marker, taxonomy_path, mapping_path,
 '''
 Function to load in taxonomy
 '''
-def load_taxonomy(taxonomy_file, lower=True):
+def loadTaxonomy(taxonomy_file, lower=True):
     global ranks
     f = open(taxonomy_file, 'r')
 
@@ -304,7 +368,7 @@ support value
 def filterClassification(taxonomy_path, classification_path, filtered_path,
         threshold):
     global ranks
-    taxon_map, level_map, key_map = load_taxonomy(taxonomy_path)
+    taxon_map, level_map, key_map = loadTaxonomy(taxonomy_path)
     
     class_in = open(classification_path, 'r')
     level_map_hierarchy = {"species": 0, "genus": 1, "family": 2, "order": 3,
