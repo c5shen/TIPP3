@@ -19,7 +19,7 @@ ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom
 Function to detect existing species based on all read classifications
 Also can implement for detection at other taxonomic levels (default to species)
 '''
-def getSpeciesDetection(refpkg, filtered_paths, rank='species'):
+def getSpeciesDetection(refpkg, classification_paths, rank='species'):
     _LOG.info(f"Detecting at level: {rank.upper()}")
     # read in species to marker map from refpkg['taxonomy']
     species_to_marker = parseSpeciesToMarker(
@@ -35,20 +35,28 @@ def getSpeciesDetection(refpkg, filtered_paths, rank='species'):
         rank_idx = 0
 
     # go over each read classification and determine the species it detects
+    # only retain the highest support one (i.e., "best" placement at species
+    # level)
+    read_to_species = {}
+    # fields: read name,taxid,taxname,rank,support value
+    for marker, classification_path in classification_paths.items():
+        # extract all lines that are marked as ",species,"
+        cmd = f"cat {classification_path} | awk /,species,/"
+        entries = os.popen(cmd).read().strip().split('\n')
+        for entry in entries:
+            parts = entry.split(',')
+            name, taxid, supp = parts[0], int(parts[1]), float(parts[-1])
+            prev_entry = read_to_species.get((marker, name), (0, 0.))
+            # better placement
+            if supp > prev_entry[1]:
+                read_to_species[(marker, name)] = (taxid, supp)
+
+    # aggregate all taxids detected
     detected = defaultdict(set)
-    # fields: fragment_name \t species \t genus \t ...
-    for marker, filtered_path in filtered_paths.items():
-        with open(filtered_path, 'r') as f:
-            # skip header
-            for line in f:
-                if line.startswith('fragment'):
-                    continue
-                parts = line.strip().split('\t')
-                # find the correpsonding taxid for the level we want to detect
-                taxid = parts[rank_idx+1]
-                if taxid != 'NA':
-                    taxid = int(taxid)
-                    detected[taxid].add(marker)
+    for k, v in read_to_species.items():
+        marker, _ = k
+        taxid, __ = v
+        detected[taxid].add(marker)
 
     # check the total number of mapped markers for each taxid
     # TODO: finish the simple thresholding based on experimental results
@@ -185,7 +193,7 @@ def getAllClassification(refpkg, query_placement_paths, pool, lock):
                 header = True
             f.write('\n'.join(lines[1:]) + '\n')
 
-    return all_classification_path, filtered_paths
+    return classification_paths, filtered_paths
 
 '''
 Function to update a given abundance profile with the new results

@@ -88,7 +88,7 @@ def tipp3_pipeline(*args, **kwargs):
         _LOG.info(f"Runtime for placing reads to marker gene taxonomies (seconds): {s4 - s3}") 
 
         # (4) collect classification results
-        all_classification_path, filtered_paths = getAllClassification(
+        classification_paths, filtered_paths = getAllClassification(
                 refpkg, query_placement_paths, pool, lock)
         # --> Abundance profile
         if Configs.command == 'abundance':
@@ -97,7 +97,7 @@ def tipp3_pipeline(*args, **kwargs):
             _LOG.info(f"Runtime for obtaining abundance profile (seconds): {s5 - s4}") 
         # --> Species detection
         elif Configs.command == 'detection':
-            getSpeciesDetection(refpkg, filtered_paths)
+            getSpeciesDetection(refpkg, classification_paths)
             s5 = time.time()
             _LOG.info(f"Runtime for detecting species (seconds): {s5 - s4}") 
 
