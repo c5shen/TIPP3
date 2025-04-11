@@ -47,8 +47,9 @@ See the pipeline below for the TIPP3 workflow.
 | (TIPP3) Shen, Chengze, Eleanor Wedell,         |
 | Mihai Pop, and Tandy Warnow, "TIPP3 and        |
 | TIPP3-fast: improved abundance profiling in    |
-| metagenomics." Accepted at PLOS Computational  |
-| biology.                                       |
+| metagenomics." PLOS Computational Biology,     |
+| 2025.                                          |
+| https://doi.org/10.1371/journal.pcbi.1012593   |
 +------------------------------------------------+
 | (TIPP2) Nguyen, Nam, Siavash Mirarab,          |
 | Bo Liu, Mihai Pop, and Tandy Warnow,           |
