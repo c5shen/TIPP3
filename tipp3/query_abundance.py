@@ -77,7 +77,6 @@ Function to parse filtered classification files and aggregate their abundances
 to produce the abundance profile on all taxonomic levels
 '''
 def getAbundanceProfile(refpkg, filtered_paths):
-    global ranks
     _LOG.info("Aggregating abundances for a profile")
 
     # initializing abundance profile at each taxonomic level
@@ -201,7 +200,6 @@ read from the given inpath.
 NOTE: updates are "counts", proportions will be calculated later
 '''
 def updateAbundanceProfile(inpath, abundance_profile):
-    global ranks
     with open(inpath, 'r') as f:
         lines = f.read().strip().split('\n')
         # skip header
@@ -336,7 +334,6 @@ def getClassification(marker, taxonomy_path, mapping_path,
 Function to load in taxonomy
 '''
 def loadTaxonomy(taxonomy_file, lower=True):
-    global ranks
     f = open(taxonomy_file, 'r')
 
     # First line is the keywords for the taxonomy, need to map the keyword to
@@ -375,7 +372,6 @@ support value
 '''
 def filterClassification(taxonomy_path, classification_path, filtered_path,
         threshold):
-    global ranks
     taxon_map, level_map, key_map = loadTaxonomy(taxonomy_path)
     
     class_in = open(classification_path, 'r')

@@ -139,7 +139,6 @@ def initiate_pool(parser, cmdline_args):
 parse argument and populate Configs
 '''
 def parseArguments(mode=None, subcommand=None):
-    global _root_dir, main_config_path
     parser = _init_parser(mode)
 
     cmdline_args = sys.argv[1:]
@@ -156,9 +155,6 @@ def parseArguments(mode=None, subcommand=None):
 
     getConfigs(arguments=cmdline_args)
     _LOG.info('TIPP3 is running with: {}'.format(' '.join(cmdline_args)))
-    #if os.path.exists(main_config_path):
-    #    _LOG.info('Main configuration loaded from {}'.format(
-    #        main_config_path))
     return parser, cmdline_args
 
 '''

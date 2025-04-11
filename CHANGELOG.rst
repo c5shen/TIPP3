@@ -11,6 +11,7 @@ TIPP3 v0.3b
    `SmartFormatter <https://gist.github.com/panzi/b4a51b3968f67b9ff4c99459fb9c5b3d>`__.
 #. Removed additional temp files that are generated when merging
    classifications.
+#. Removed unused global variables according to pylint.
 
 TIPP3 v0.3a
 -----------

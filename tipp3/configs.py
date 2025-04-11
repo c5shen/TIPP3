@@ -32,7 +32,6 @@ tqdm_styles = {
 Configurations defined by users
 '''
 class Configs:
-    global _root_dir
 
     # subcommand and verbose
     command = None
