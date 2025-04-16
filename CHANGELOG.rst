@@ -1,3 +1,10 @@
+TIPP3 v0.3
+----------
+#. Included all changes from v0.3b.
+#. Changed the default placement method for TIPP3 from BSCAMPP(epa-ng) to
+   BSCAMPP(pplacer), which is more accurate with similar scalability and speed.
+   You can change this setting with ``--bscampp-mode {epa-ng,pplacer}``.
+
 TIPP3 v0.3b
 -----------
 #. Added basic species detection functionality (WIP), invoked by subcommand

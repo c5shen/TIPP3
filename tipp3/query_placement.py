@@ -66,13 +66,27 @@ def queryPlacement(refpkg, query_alignment_paths):
         else:
             backbone_alignment_path = refpkg[marker]['alignment']
 
+            # base method for placement defined in main.config
+            base_method = additional_kwargs.get('placement_method', None)
+            # override by user input
+            if Configs.bscampp_mode:
+                base_method = Configs.bscampp_mode
+            # pplacer required info by FastTree-2 reestimated branches/logs
+            if base_method == 'pplacer':
+                backbone_tree_path = refpkg[marker]['placement-tree']
+                tree_model_path = refpkg[marker]['placement-tree-stats']
+            # others, including EPA-ng, with raxml-ng branch lengths
+            else:
+                backbone_tree_path = refpkg[marker]['additional-raxml-br-tree']
+                tree_model_path = refpkg[marker]['additional-raxml-model-file']
+
             placement_job = BscamppJob(path=Configs.bscampp_path,
                     query_alignment_path=query_alignment_path,
                     backbone_alignment_path=backbone_alignment_path,
-                    backbone_tree_path=refpkg[marker]['additional-raxml-br-tree'],
-                    tree_model_path=refpkg[marker]['additional-raxml-model-file'],
+                    backbone_tree_path=backbone_tree_path,
+                    tree_model_path=tree_model_path,
                     outdir=placement_dir,
-                    placement_method=Configs.bscampp_mode,
+                    placement_method=base_method,
                     num_cpus=Configs.num_cpus,
                     **additional_kwargs) 
         placement_path = placement_job.run(logging=True)

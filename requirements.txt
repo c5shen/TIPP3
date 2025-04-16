@@ -5,5 +5,5 @@ psutil>=5.0.0
 setuptools>=60.0.0
 treeswift>=1.1.28
 witch-msa>=1.0.7
-bscampp>=1.0.5
+bscampp>=1.0.7
 lz4>=4.3.2

@@ -1,6 +1,6 @@
 TIPP3 and TIPP3-fast: Taxonomic Identification and Phylogenetic Profiling
 =========================================================================
-|PyPI version| |Python version| |Build| |License| |CHANGELOG| |Wiki|
+|PyPI version| |Python version| |Build| |License| |CHANGELOG| |DOI| |Wiki|
   
 :Developer:
     Chengze Shen
@@ -11,10 +11,11 @@ TIPP3 and TIPP3-fast: Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
+* 4.16.2025 - TIPP3 is publicly available on PLOS Computational Biology!
+  `DOI link <https://doi.org/10.1371/journal.pcbi.1012593>`__.
 * 3.6.2025 - Users can directly download the latest TIPP3 reference package
   by running the subcommand ``run_tipp3.py download_refpkg``.
-* 3.2.2025 - **TIPP3 is now accepted at PLOS Computational Biology and will soon
-  be publicly available!**
+* 3.2.2025 - TIPP3 is accepted by PLOS Computational Biology!
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
@@ -263,10 +264,7 @@ placement. Keep all temporary files during the run.
 
 TODO list
 ---------
-* 1.26.2025 - Add a parameter option to allow users to set the support value
-  for abundance profiling. Currently, the support values are empirically set
-  for different placement methods (90% for pplacer-taxtastic and 95% for
-  Batch-SCAMPP).
+* None for now.
 
 
 .. |PyPI version| image:: https://img.shields.io/pypi/v/tipp3
@@ -284,6 +282,9 @@ TODO list
 .. |CHANGELOG| image:: https://img.shields.io/badge/CHANGE-LOG-blue?style=flat
    :alt: Static Badge
    :target: CHANGELOG.rst
+.. |DOI| image:: https://img.shields.io/badge/DOI-10.1371%2Fjournal.pcbi.1012593-default
+   :alt: Static Badge
+   :target: https://doi.org/10.1371/journal.pcbi.1012593
 .. |Wiki| image:: https://img.shields.io/badge/Wiki-page-blue?style=flat
    :alt: Static Badge
    :target: https://github.com/c5shen/TIPP3/wiki
