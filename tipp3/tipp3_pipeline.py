@@ -269,12 +269,12 @@ def _init_parser(mode=None):
                 ("Additional parameters for TIPP3 setup/config etc."))
         _subparser.groups['misc_group'] = misc_group
         misc_group.add_argument('--bscampp-mode', type=str,
-            choices=['pplacer', 'epa-ng'], default=None,
+            choices=['pplacer', 'epa-ng'], default='pplacer',
             help=' '.join(['Base placement method to use in BSCAMPP,',
                 'currently supporting pplacer and epa-ng.',
                 'Has priority and will override settings in',
                 'main.config or a customized config file.'
-                '[default: None]'])) 
+                '[default: pplacer]'])) 
         misc_group.add_argument('--alignment-only', action='store_const',
             const=True, default=False,
             help='Only obtain query alignments to marker genes and stop TIPP3.')

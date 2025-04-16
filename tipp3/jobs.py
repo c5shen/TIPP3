@@ -299,7 +299,7 @@ class BscamppJob(Job):
     def __init__(self,
             path, query_alignment_path, backbone_alignment_path,
             backbone_tree_path, tree_model_path, outdir,
-            placement_method, num_cpus, **kwargs):
+            base_method, num_cpus, **kwargs):
         Job.__init__(self)
         self.job_type = 'bscampp'
         
@@ -315,8 +315,8 @@ class BscamppJob(Job):
 
         # override placement-method for BSCAMPP, if defined by the miscellaneous
         # parameter "--bscampp-mode"
-        if placement_method is not None:
-            self.kwargs['placement_method'] = placement_method
+        if base_method is not None:
+            self.kwargs['placement_method'] = base_method
 
     def get_invocation(self):
         self.outpath = os.path.join(self.outdir, 'placement.jplace')

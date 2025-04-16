@@ -86,7 +86,7 @@ def queryPlacement(refpkg, query_alignment_paths):
                     backbone_tree_path=backbone_tree_path,
                     tree_model_path=tree_model_path,
                     outdir=placement_dir,
-                    placement_method=base_method,
+                    base_method=base_method,
                     num_cpus=Configs.num_cpus,
                     **additional_kwargs) 
         placement_path = placement_job.run(logging=True)
