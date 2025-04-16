@@ -138,8 +138,7 @@ Requirements
    setuptools>=60.0.0
    treeswift>=1.1.28
    witch-msa>=1.0.7
-   bscampp>=1.0.5
-   lz4>=4.3.2
+   bscampp>=1.0.7
 
 Installation Steps
 ++++++++++++++++++
