@@ -217,12 +217,6 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
             # check if the argument is valid
             set_valid_configuration(k, k_attr)
 
-    # Parallelization related
-    if args.num_cpus > 0:
-        Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
-    else:
-        Configs.num_cpus = os.cpu_count()
-
     # verbose level
     verbose = os.getenv('TIPP_LOGGING_LEVEL', 'info').upper()
     if verbose in logging_levels:
@@ -230,6 +224,12 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
 
     ######### subcommands: abundance/detection ##########
     if Configs.command == 'abundance' or Configs.command == 'detection':
+        # Parallelization related
+        if args.num_cpus > 0:
+            Configs.num_cpus = min(os.cpu_count(), args.num_cpus)
+        else:
+            Configs.num_cpus = os.cpu_count()
+
         # set up preset mode, TIPP3 or TIPP3-fast
         if Configs.mode == 'tipp3-fast':
             amethod, pmethod = 'blast', 'bscampp'

@@ -73,12 +73,14 @@ def loadReferencePackage(refpkg_path, refpkg_version):
 Download the latest TIPP reference package
 '''
 def downloadReferencePackage(outdir, decompress=False):
-    # hosted on Illinois Databank
-    url = 'https://databank.illinois.edu/datafiles/yq7ry/download'
+    # latest version name, hosted on Illinois Databank
+    latest_version = 'tipp3-refpkg-1-2.zip' 
+    url = 'https://databank.illinois.edu/datafiles/sarfb/download'
+
     _LOG.info(f"Downloading the latest TIPP reference package from {url}")
 
     # specify the name of the downloaded zipfile
-    outpath = os.path.join(outdir, 'tipp3-refpkg.zip')
+    outpath = os.path.join(outdir, latest_version)
     if os.path.exists(outpath):
         _LOG.warning(
                 f"{outpath} exists! Skipped download to avoid overwriting.")
