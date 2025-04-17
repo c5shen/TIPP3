@@ -9,7 +9,7 @@ TIPP3 v0.3b
 -----------
 #. Added basic species detection functionality (WIP), invoked by subcommand
    ``run_tipp3.py detection [parameters]``. The output will be under the output
-   directory named ``detected.tsv``.
+   directory named ``detected_species.tsv``.
 #. Added new files to the reference package that refer to a marker gene's
    taxonomy tree (before and after renaming leaf nodes), and a mapping between
    all species taxid to the list of marker genes they appear in. See

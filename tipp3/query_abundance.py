@@ -34,43 +34,43 @@ def getSpeciesDetection(refpkg, classification_paths, rank='species'):
         # default to species
         rank_idx = 0
 
-    # go over each read classification and determine the species it detects
-    # only retain the highest support one (i.e., "best" placement at species
-    # level)
-    read_to_species = {}
+    # (1) go over each read classification and record the corresponding 
+    # likelihood-weight ratios (lwr) from each marker.
+    # (2) for each marker, obtain the average of lwr of each species.
+    # (3) for each {rank}, obtain the average of lwr from all voting markers.
     # fields: read name,taxid,taxname,rank,support value
+    detected = defaultdict(float)
     for marker, classification_path in classification_paths.items():
-        # extract all lines that are marked as ",species,"
-        cmd = f"cat {classification_path} | awk /,species,/"
+        # extract all lines that are marked as ",{rank},"
+        marker_detected = defaultdict(float)
+        marker_cnt = defaultdict(int)
+        cmd = f"cat {classification_path} | awk /,{rank},/"
         entries = os.popen(cmd).read().strip().split('\n')
         for entry in entries:
             parts = entry.split(',')
             name, taxid, supp = parts[0], int(parts[1]), float(parts[-1])
-            prev_entry = read_to_species.get((marker, name), (0, 0.))
-            # better placement
-            if supp > prev_entry[1]:
-                read_to_species[(marker, name)] = (taxid, supp)
+            marker_detected[taxid] += supp
+            marker_cnt[taxid] += 1
 
-    # aggregate all taxids detected
-    detected = defaultdict(set)
-    for k, v in read_to_species.items():
-        marker, _ = k
-        taxid, __ = v
-        detected[taxid].add(marker)
+            # marker_confidence -> the average of lwr for each species,
+            # from all voting markers
+            for taxid in marker_detected.keys():
+                detected[taxid] += marker_detected[taxid] / marker_cnt[taxid]
+
+    # sort detected taxids by their marker confidences
+    detected_taxids = sorted([k for k in detected.keys()],
+            key=lambda x: detected[x] / len(species_to_marker[x]),
+            reverse=True)
 
     # check the total number of mapped markers for each taxid
-    # TODO: finish the simple thresholding based on experimental results
-    outpath = os.path.join(Configs.outdir, f"detected.tsv")
-    _LOG.info(f"Writing detected species to {outpath}")
+    outpath = os.path.join(Configs.outdir, f"detected_{rank}.tsv")
+    _LOG.info(f"Writing detected {rank} to {outpath}")
     with open(outpath, 'w') as f:
-        f.write("taxa\ttaxid\tvoted_marker\ttotal_marker\n")
-        taxids = sorted([k for k in detected.keys()],
-                key=lambda x: len(detected[x]), reverse=True)
-        for taxid in taxids:
+        f.write("taxa\ttaxid\tmarker_confidence\n")
+        for taxid in detected_taxids:
             taxname = taxid_map[taxid][0]
-            voted_marker = len(detected[taxid])
-            total_marker = len(species_to_marker[taxid])
-            f.write(f"{taxname}\t{taxid}\t{voted_marker}\t{total_marker}\n")
+            marker_confidence = detected[taxid] / len(species_to_marker[taxid])
+            f.write(f"{taxname}\t{taxid}\t{marker_confidence}\n")
 
 '''
 Function to parse filtered classification files and aggregate their abundances
