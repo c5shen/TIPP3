@@ -52,10 +52,10 @@ def getSpeciesDetection(refpkg, classification_paths, rank='species'):
             marker_detected[taxid] += supp
             marker_cnt[taxid] += 1
 
-            # marker_confidence -> the average of lwr for each species,
-            # from all voting markers
-            for taxid in marker_detected.keys():
-                detected[taxid] += marker_detected[taxid] / marker_cnt[taxid]
+        # marker_confidence -> the average of lwr for each species,
+        # from all voting markers
+        for taxid in marker_detected.keys():
+            detected[taxid] += marker_detected[taxid] / marker_cnt[taxid]
 
     # sort detected taxids by their marker confidences
     detected_taxids = sorted([k for k in detected.keys()],
