@@ -19,8 +19,9 @@ ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom
 Function to detect existing species based on all read classifications
 Also can implement for detection at other taxonomic levels (default to species)
 '''
-def getSpeciesDetection(refpkg, classification_paths, rank='species'):
-    _LOG.info(f"Detecting at level: {rank.upper()}")
+def getSpeciesDetection(detection_thresholds,
+        refpkg, classification_paths, rank='species'):
+    _LOG.info(f"Detecting at taxonomic level: {rank.upper()}")
     # read in species to marker map from refpkg['taxonomy']
     species_to_marker = parseSpeciesToMarker(
             refpkg['taxonomy']['species-to-marker-map'])
@@ -63,14 +64,30 @@ def getSpeciesDetection(refpkg, classification_paths, rank='species'):
             reverse=True)
 
     # check the total number of mapped markers for each taxid
-    outpath = os.path.join(Configs.outdir, f"detected_{rank}.tsv")
-    _LOG.info(f"Writing detected {rank} to {outpath}")
+    outpath = os.path.join(Configs.outdir, f"detected_{rank}_UNFILTERD.tsv")
+    _LOG.info(f"Writing UNFILTERED {rank} detection to {outpath}")
     with open(outpath, 'w') as f:
         f.write("taxa\ttaxid\tmarker_confidence\n")
         for taxid in detected_taxids:
             taxname = taxid_map[taxid][0]
             marker_confidence = detected[taxid] / len(species_to_marker[taxid])
             f.write(f"{taxname}\t{taxid}\t{marker_confidence}\n")
+
+    # write a filtered version based on given threshold
+    for suffix, thres in detection_thresholds.items():
+        outpath = os.path.join(Configs.outdir, f"detected_{rank}_{suffix}.tsv")
+        _LOG.info(f"Writing {suffix} (B={thres}) {rank} detection to {outpath}")
+        with open(outpath, 'w') as f:
+            f.write("taxa\ttaxid\tmarker_confidence\n")
+            for taxid in detected_taxids:
+                taxname = taxid_map[taxid][0]
+                mc = detected[taxid] / len(species_to_marker[taxid])
+                # detected_taxids are sorted by marker confidence in descending
+                # order, so breaking here will present writing anything below
+                # the threshold value
+                if mc < thres:
+                    break
+                f.write(f"{taxname}\t{taxid}\t{mc}\n")
 
 '''
 Function to parse filtered classification files and aggregate their abundances
@@ -161,36 +178,39 @@ def getAllClassification(refpkg, query_placement_paths, pool, lock):
                 getattr(Configs, Configs.placement_method).support_value)
     except (AttributeError, ValueError) as e:
         pass
-    _LOG.info(f"Filtering with support value={support_value}")
 
+    # Updated @ 7.7.2025 - Chengze Shen
+    #   - only filter if command is for abundance
     filtered_paths = {}
-    for marker, classification_path in classification_paths.items():
-        clas_outdir = os.path.join(Configs.outdir, 'query_classifications',
-                marker)
-        taxonomy_path = refpkg[marker]['taxonomy']
-        if not os.path.exists(taxonomy_path):
-            taxonomy_path = os.path.join(os.path.dirname(taxonomy_path),
-                    'all_taxon.taxonomy')
-        filtered_path = os.path.join(clas_outdir,
-                f"placement.classification.{support_value.split('.')[-1]}")
-        filterClassification(taxonomy_path,
-                classification_path, filtered_path, float(support_value))
-        filtered_paths[marker] = filtered_path
+    if Configs.command == 'abundance':
+        _LOG.info(f"Filtering with support value={support_value}")
+        for marker, classification_path in classification_paths.items():
+            clas_outdir = os.path.join(Configs.outdir, 'query_classifications',
+                    marker)
+            taxonomy_path = refpkg[marker]['taxonomy']
+            if not os.path.exists(taxonomy_path):
+                taxonomy_path = os.path.join(os.path.dirname(taxonomy_path),
+                        'all_taxon.taxonomy')
+            filtered_path = os.path.join(clas_outdir,
+                    f"placement.classification.{support_value.split('.')[-1]}")
+            filterClassification(taxonomy_path,
+                    classification_path, filtered_path, float(support_value))
+            filtered_paths[marker] = filtered_path
 
-    # Updated @ 1.22.2025 - Chengze Shen
-    #   - aggregate all classifications and output to a file as well
-    # (2.5) aggregate all classifications
-    all_classification_path = os.path.join(Configs.outdir,
-            'query_classifications.tsv')
-    header = False
-    with open(all_classification_path, 'w') as f:
-        for marker, filtered_path in filtered_paths.items():
-            with open(filtered_path, 'r') as fptr:
-                lines = fptr.read().strip().split('\n')
-            if not header:
-                f.write(lines[0] + '\n')
-                header = True
-            f.write('\n'.join(lines[1:]) + '\n')
+        # Updated @ 1.22.2025 - Chengze Shen
+        #   - aggregate all classifications and output to a file as well
+        # (2.5) aggregate all classifications
+        all_classification_path = os.path.join(Configs.outdir,
+                'query_classifications.tsv')
+        header = False
+        with open(all_classification_path, 'w') as f:
+            for marker, filtered_path in filtered_paths.items():
+                with open(filtered_path, 'r') as fptr:
+                    lines = fptr.read().strip().split('\n')
+                if not header:
+                    f.write(lines[0] + '\n')
+                    header = True
+                f.write('\n'.join(lines[1:]) + '\n')
 
     return classification_paths, filtered_paths
 

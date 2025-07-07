@@ -70,6 +70,9 @@ class Configs:
     alignment_only = False
     keeptemp = False
     bypass_setup = True
+
+    ############# configs specific for detection ##############
+    detection_threshold = None
     
     ########## configs specific for download_refpkg ###########
     decompress = False
@@ -244,6 +247,7 @@ def buildConfigs(parser, cmdline_args, child_process=False, rerun=False):
             Configs.alignment_method = amethod
         if Configs.placement_method is None:
             Configs.placement_method = pmethod
+
     ############ subcommand: download_refpkg #############
     elif Configs.command == 'download_refpkg':
         pass

@@ -97,7 +97,22 @@ def tipp3_pipeline(*args, **kwargs):
             _LOG.info(f"Runtime for obtaining abundance profile (seconds): {s5 - s4}") 
         # --> Species detection
         elif Configs.command == 'detection':
-            getSpeciesDetection(refpkg, classification_paths)
+            # default output files:
+            #   > B=0.2, detected_species_conservative.tsv
+            #   > B=0.12, detected_species_sensitive.tsv
+            #   > (if any) B=custom, detected_species_custom.tsv
+            detection_thresholds = {'conservative': 0.2, 'sensitive': 0.12}
+            if Configs.detection_threshold != None:
+                # sanity check to make sure the user-defined value
+                # is within the bound
+                dt = Configs.detection_threshold
+                if dt < 0. or dt > 1.:
+                    _LOG.warning(
+                        f"User-defined detection threshold ({dt}) out of bound, ignored.")
+                else:
+                    detection_thresholds['custom'] = dt
+
+            getSpeciesDetection(detection_thresholds, refpkg, classification_paths)
             s5 = time.time()
             _LOG.info(f"Runtime for detecting species (seconds): {s5 - s4}") 
 
@@ -208,7 +223,10 @@ def _init_parser(mode=None):
 
 #################### subcommand: abundance/detection ##########################
     # abundance and detection share the same groups of arguments
-    for _subparser in [subparser_abs, subparser_detection]:
+    for parser_name, _subparser in {
+            'abundance': subparser_abs,
+            'detection': subparser_detection
+            }.items():
         _subparser.groups = dict()
         # basic settings
         basic_group = _subparser.add_argument_group(
@@ -217,6 +235,7 @@ def _init_parser(mode=None):
                  "Users need to provide the path to a TIPP3-compatible refpkg "
                  "and the path to the query reads they wish to profile."))
         _subparser.groups['basic_group'] = basic_group
+
         basic_group.add_argument('-i', '--query-path', type=str,
             help=' '.join(['Path to a set of unaligned query reads',
                 'for classification.', 'Accepted format:'
@@ -262,6 +281,17 @@ def _init_parser(mode=None):
         basic_group.add_argument('-t', '--num-cpus',
             type=int, help='Number of CPUs for multi-processing. [default: -1 (all)]',
             required=False, default=-1)
+        # detection specific parameter
+        if parser_name == 'detection': 
+            basic_group.add_argument('-B', '--detection-threshold',
+                type=float, help=' '.join(['(Detection only) Customized threshold for',
+                    'species detection, other than the conservative (0.2)',
+                    'and sensitive (0.12) values, ranging from [0, 1].',
+                    'Will write detected species to',
+                    'a separate file named \"detected_species_custom.tsv\".',
+                    '[default: None]']),
+                required=False, default=None)
+
 
         # miscellaneous group
         misc_group = _subparser.add_argument_group(
@@ -283,7 +313,7 @@ def _init_parser(mode=None):
             default=False)
         misc_group.add_argument('-y', '--bypass-setup', action='store_const',
             const=True, default=True,
-            help=' '.join(['(Optional) Include this argument to bypass',
+            help=' '.join(['(DEPRECATED) Include this argument to bypass',
                 'the initial step when running TIPP3 to set up the',
                 'configuration directory (will use ~/.tipp3).',
                 'Note: By default this option is enabled.']))

@@ -1,3 +1,11 @@
+TIPP3 v0.4a
+-----------
+#. Updated output files for ``detection`` subcommand. Now will write detected
+   species in files named ``detected_species_{suffix}.tsv``, where
+   ``suffix=[UNFILTERED,conservative,sensitive,custom]``. Users can set the
+   custom detection threshold through the parameter ``-B [threshold]``.
+   Threshold needs to be between 0 and 1, higher value means lower sensitivity.
+
 TIPP3 v0.3
 ----------
 #. Included all changes from v0.3b.

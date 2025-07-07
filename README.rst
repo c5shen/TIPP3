@@ -37,6 +37,9 @@ which use a marker gene database to identify the taxonomic lineage of input
 reads (if the read comes from a marker gene).
 See the pipeline below for the TIPP3 workflow.
 
+Additionally, TIPP3 can perform detection at different taxonomic levels
+(currently support species level).
+
 .. image:: https://chengzeshen.com/documents/tipp3/tipp3_overview.png
    :alt: TIPP3 pipeline
    :width: 100%
@@ -198,6 +201,20 @@ the TIPP3 pipeline.
 
    python3 run_tipp3.py abundance -r [reference package path] -i [query reads] -d [output directory]
 
+Subcommand ``detection``
+~~~~~~~~~~~~~~~~~~~~~~~~
+TIPP3 can also perform taxon detection at different taxonomic levels (currently
+only support at the species level). This uses the same set of parameters as
+the ``abundance`` subcommand, with an optional parameter ``-B`` to set a
+custom threshold for reporting detected species. By default, there will be two
+output files with two different thresholds (`convervative` for better precision
+and `sensitive` for better recall).
+
+.. code:: bash
+
+   # taxon detection (currently only species level)
+   python3 run_tipp3.py detection -B [detection threshold] ...
+
 Subcommand ``download_refpkg``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Users can also directly download the latest version of the TIPP3 reference
@@ -227,8 +244,10 @@ data used is a small set of Illumina short reads denoted as
 
 Scenario 1
 ++++++++++
-(TIPP3-fast) Use BLAST for query alignment, and Batch-SCAMPP (``bscampp``) for
-query placement.
+(TIPP3-fast) Use BLAST for query alignment, and BSCAMPP (``bscampp``) for
+query placement. Note that TIPP3 uses BSCAMPP with `pplacer` as the base
+method. The user can switch to BSCAMPP using `EPA-ng` by setting
+``--bscampp-mode epa-ng``.
 
 .. code:: bash
 
@@ -245,7 +264,7 @@ query placement (``pplacer-taxtastic``).
 .. code:: bash
 
    python3 run_tipp3.py abundance -i examples/illumina.small.queries.fasta \
-      --reference-package [reference package dir] --outdir tipp3_scenario1 \
+      --reference-package [reference package dir] --outdir tipp3_scenario2 \
       --alignment-method blast --placement-method pplacer-taxtastic \
       -t 16
 
@@ -257,9 +276,20 @@ placement. Keep all temporary files during the run.
 .. code:: bash
 
    python3 run_tipp3.py abundance -i examples/illumina.small.queries.fasta \
-      --reference-package [reference package dir] --outdir tipp3_scenario1 \
+      --reference-package [reference package dir] --outdir tipp3_scenario3 \
       --alignment-method witch --placement-method pplacer-taxtastic \
       -t 16 --keeptemp
+
+Scenario 4
+++++++++++
+Use TIPP3-fast for species detection. Also output a custom detection threshold
+`B=0.3` other than the two default values.
+
+.. code:: bash
+
+   python3 run_tipp3.py detection -i examples/illumina.small.queries.fasta \
+      --reference-package [reference package dir] --outdir tipp3_scenario4 \
+      -t 16 -B 0.3
 
 TODO list
 ---------
