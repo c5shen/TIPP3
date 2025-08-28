@@ -1,5 +1,5 @@
-TIPP3 and TIPP3-fast: Taxonomic Identification and Phylogenetic Profiling
-=========================================================================
+TIPP3 and TIPP-SD: Metagenomic Abundance Profiling and Detection
+================================================================
 |PyPI version| |Python version| |Build| |License| |CHANGELOG| |DOI| |Wiki|
   
 :Developer:
@@ -11,11 +11,13 @@ TIPP3 and TIPP3-fast: Taxonomic Identification and Phylogenetic Profiling
 
 News
 ----
+* 8.27.2025 - TIPP-SD is now accepted by ACM-BCB 2025! Run TIPP-SD for
+  species detection from metagenomic reads with the subcommand
+  ``run_tipp3.py detection``.
 * 4.16.2025 - TIPP3 is publicly available on PLOS Computational Biology!
   `DOI link <https://doi.org/10.1371/journal.pcbi.1012593>`__.
 * 3.6.2025 - Users can directly download the latest TIPP3 reference package
   by running the subcommand ``run_tipp3.py download_refpkg``.
-* 3.2.2025 - TIPP3 is accepted by PLOS Computational Biology!
 * 1.20.2025 - TIPP3 now is feature complete for abundance profiling, for both
   the more accurate TIPP3 mode or the fast TIPP3-fast mode. By default,
   TIPP3-fast is used.
@@ -37,8 +39,8 @@ which use a marker gene database to identify the taxonomic lineage of input
 reads (if the read comes from a marker gene).
 See the pipeline below for the TIPP3 workflow.
 
-Additionally, TIPP3 can perform detection at different taxonomic levels
-(currently support species level).
+Additionally, TIPP-SD, as a subcommand, can perform detection at the species
+level.
 
 .. image:: https://chengzeshen.com/documents/tipp3/tipp3_overview.png
    :alt: TIPP3 pipeline
@@ -201,8 +203,8 @@ the TIPP3 pipeline.
 
    python3 run_tipp3.py abundance -r [reference package path] -i [query reads] -d [output directory]
 
-Subcommand ``detection``
-~~~~~~~~~~~~~~~~~~~~~~~~
+Subcommand ``detection`` (TIPP-SD)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TIPP3 can also perform taxon detection at different taxonomic levels (currently
 only support at the species level). This uses the same set of parameters as
 the ``abundance`` subcommand, with an optional parameter ``-B`` to set a
@@ -317,3 +319,4 @@ TODO list
 .. |Wiki| image:: https://img.shields.io/badge/Wiki-page-blue?style=flat
    :alt: Static Badge
    :target: https://github.com/c5shen/TIPP3/wiki
+
