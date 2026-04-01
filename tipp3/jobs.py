@@ -1,35 +1,91 @@
-'''
+"""
 A collection of jobs for TIPP3.
 
 Jobs are designed to be run standalone, as long as all parameters
 are provided correctly.
-'''
+"""
 
-import os, shutil, subprocess, stat, re, traceback, shlex
-import threading
+import os, shutil, subprocess, traceback
 from subprocess import Popen
 from abc import abstractmethod
 
 from tipp3 import get_logger
-from tipp3.configs import Configs
 
 _LOG = get_logger(__name__)
 
-'''
-function to streamline the logging of stdout and stderr output from a job run
-to a target logging file
-'''
-def stream_to_file(stream, fptr, logging):
-    if logging:
-        for line in iter(stream.readline, ''):
-            fptr.write(line)
-            fptr.flush()
-    stream.close()
 
-'''
-Template Class Job for running external jobs
-'''
+def _validate_executable(binpath, job_type):
+    """Validate that a binary path exists and is executable."""
+    if shutil.which(binpath) is not None:
+        return
+    if os.path.isfile(binpath) and os.access(binpath, os.X_OK):
+        return
+    if binpath == 'java' or binpath.endswith('.jar'):
+        return
+    raise FileNotFoundError(
+        f"Executable for {job_type} not found: '{binpath}'. "
+        "Please check your main.config or ensure the tool is installed.")
+
+
+def _run_pipeline(cmd_groups, stdin_data="", logging_fobj=None):
+    """Run a pipeline of commands connected by pipes.
+
+    Args:
+        cmd_groups: list of lists, e.g. [['gzip', '-dc', 'f.gz'], ['blastn', ...]]
+        stdin_data: string data to feed to the first process's stdin
+        logging_fobj: open file object to redirect final stdout, or None
+
+    Returns:
+        (stdout, stderr, returncode) of the last process in the pipeline
+    """
+    if not cmd_groups:
+        raise ValueError("Empty command pipeline")
+
+    processes = []
+    prev_stdout = subprocess.PIPE
+
+    for i, cmd in enumerate(cmd_groups):
+        is_first = (i == 0)
+        is_last = (i == len(cmd_groups) - 1)
+
+        stdin_arg = subprocess.PIPE if is_first else processes[-1].stdout
+        if is_last and logging_fobj is not None:
+            stdout_arg = logging_fobj
+        else:
+            stdout_arg = subprocess.PIPE
+
+        p = Popen(cmd, text=True, bufsize=1,
+                  stdin=stdin_arg, stdout=stdout_arg,
+                  stderr=subprocess.PIPE)
+        # allow upstream process to receive SIGPIPE
+        if not is_first and processes[-1].stdout:
+            processes[-1].stdout.close()
+        processes.append(p)
+
+    # send stdin data to the first process
+    if stdin_data and processes:
+        try:
+            processes[0].stdin.write(stdin_data)
+        except BrokenPipeError:
+            pass
+        processes[0].stdin.close()
+
+    # wait for all processes to complete
+    for p in processes:
+        p.wait()
+
+    last = processes[-1]
+    stderr = last.stderr.read() if last.stderr else ''
+    stdout = ''
+    if last.stdout and logging_fobj is None:
+        stdout = last.stdout.read()
+
+    return stdout, stderr, last.returncode
+
+
 class Job(object):
+    """Template class for running external jobs."""
+
     def __init__(self):
         self.job_type = ""
         self.errors = []
@@ -43,113 +99,47 @@ class Job(object):
     def get_pid(self):
         return self.pid
 
-    # run the job with given invocation defined in a child class
-    # raise errors when encountered
     def run(self, stdin="", lock=None, logging=False, shell=False):
+        """Run the job with the invocation defined in a child class."""
         try:
             cmd, outpath = self.get_invocation()
             _LOG.debug(f"Running job_type: {self.job_type}, output: {outpath}")
 
-            # failsafe for NotImplemented jobs
             if len(cmd) == 0:
                 raise ValueError(
-                        f"{self.job_type} does not have a valid run command. "
-                        "It might be due to (invalid input types, ).")
+                    f"{self.job_type} does not have a valid run command. "
+                    "Check that your input file format is supported "
+                    "(.fa/.fasta/.fq/.fastq, optionally .gz compressed).")
 
-            binpath = cmd[0]
-            # special case for "java -jar ..."
-            if binpath == 'java':
-                binpath = cmd[2]
-
-            assert os.path.exists(binpath) or binpath == "gzip", \
-                    ("executable for %s does not exist: %s" % 
-                     (self.job_type, binpath))
-            assert \
-                (binpath.count("/") == 0 or os.path.exists(binpath)), \
-                ("path for %s does not exist (%s)" %
-                 (self.job_type, binpath))
-
-            _LOG.debug("Arguments: %s", " ".join(
-                (str(x) if x is not None else "?NoneType?"
-                 for x in cmd)))
-        
-            # logging to a local file at the target outdir
-            # logname: <outdir>/{self.job_type}.txt
-            stdout, stderr = '', ''
-            scmd = ' '.join(cmd)
-            if logging:
-                logpath = os.path.join(
-                        os.path.dirname(outpath), f'{self.job_type}.txt')
-                outlogging = open(logpath, 'w', 1)
-
-                # deal with piping between multiple commands (if any)
-                if '|' in scmd:
-                    _stdout = subprocess.PIPE
-                    subcmds = [shlex.split(x) for x in scmd.split('|')]
-                    prev_p = Popen(subcmds[0], text=True, bufsize=1,
-                            stdout=_stdout)
-                    for i in range(1, len(subcmds)):
-                        if i == len(subcmds) - 1:
-                            _stdout = outlogging
-
-                        p = Popen(subcmds[i], text=True, bufsize=1,
-                            stdin=prev_p.stdout,
-                            stdout=_stdout, stderr=subprocess.PIPE)
-                        self.pid = p.pid
-                        prev_p = p
-                    stdout, stderr = p.communicate()
-                    stdout = ''
-                else:
-                    p = Popen(cmd, text=True, bufsize=1,
-                            stdin=subprocess.PIPE,
-                            stdout=outlogging, stderr=subprocess.PIPE)
-                    self.pid = p.pid
-                    stdout, stderr = p.communicate(input=stdin)
-                    stdout = ''
-                outlogging.close()
+            # cmd can be a flat list (single command) or list-of-lists (pipeline)
+            if isinstance(cmd[0], list):
+                cmd_groups = cmd
             else:
-                if '|' in scmd:
-                    subcmds = [shlex.split(x) for x in scmd.split('|')]
-                    prev_p = Popen(subcmds[0], text=True, bufsize=1,
-                            stdout=subprocess.PIPE)
-                    for i in range(1, len(subcmds)):
-                        p = Popen(subcmds[i], text=True, bufsize=1,
-                            stdin=prev_p.stdout,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                        self.pid = p.pid
-                        prev_p = p
-                    stdout, stderr = p.communicate()
+                cmd_groups = [cmd]
+
+            # validate the primary executable of each command in the pipeline
+            for group in cmd_groups:
+                binpath = group[0]
+                if binpath == 'java' and len(group) > 2:
+                    _validate_executable(group[2], self.job_type)
                 else:
-                    p = Popen(cmd, text=True, bufsize=1,
-                            stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    self.pid = p.pid
-                    stdout, stderr = p.communicate(input=stdin)
+                    _validate_executable(binpath, self.job_type)
 
-            self.returncode = p.returncode
+            _LOG.debug("Command pipeline: %s",
+                       " | ".join(" ".join(str(x) for x in g) for g in cmd_groups))
 
-            #p = Popen(cmd, bufsize=1, text=True,
-            #        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            #_outdir = os.path.dirname(os.path.realpath(outpath))
-            #if logging:
-            #    logfile = os.path.join(_outdir, 'runtime.txt')
-            #    fptr = open(logfile, 'w', buffering=1)
+            log_fobj = None
+            try:
+                if logging:
+                    logpath = os.path.join(
+                        os.path.dirname(outpath), f'{self.job_type}.txt')
+                    log_fobj = open(logpath, 'w', 1)
 
-            #    # initialize writing to logging file (if logging)
-            #    stdout_thread = threading.Thread(target=stream_to_file,
-            #            args=(p.stdout, fptr, logging))
-            #    stderr_thread = threading.Thread(target=stream_to_file,
-            #            args=(p.stderr, fptr, logging))
-            #    stdout_thread.start()
-            #    stderr_thread.start()
-
-            #    # join threads
-            #    stdout_thread.join()
-            #    stderr_thread.join()
-
-            # finish up the process run
-            #stdout, stderr = p.communicate()
-            #self.returncode = p.returncode
+                stdout, stderr, self.returncode = _run_pipeline(
+                    cmd_groups, stdin_data=stdin, logging_fobj=log_fobj)
+            finally:
+                if log_fobj is not None:
+                    log_fobj.close()
 
             if self.returncode == 0:
                 if lock:
@@ -162,113 +152,99 @@ class Job(object):
                     _LOG.debug(f"{self.job_type} completed, output: {outpath}")
                 return outpath
             else:
-                error_msg = ' '.join([f"Error occurred running {self.job_type}.",
-                    f"Return code: {self.returncode}"])
-                print(error_msg)
+                error_msg = (f"Error running {self.job_type}. "
+                             f"Return code: {self.returncode}")
                 if lock:
                     try:
                         lock.acquire()
                         _LOG.error(error_msg + '\nSTDOUT: ' + stdout +
-                                '\nSTDERR: ' + stderr)
+                                   '\nSTDERR: ' + stderr)
                     finally:
                         lock.release()
                 else:
                     _LOG.error(error_msg + '\nSTDOUT: ' + stdout +
-                            '\nSTDERR: ' + stderr)
-                #_LOG.error(error_msg + '\n' + stdout)
-                exit(1)
+                               '\nSTDERR: ' + stderr)
+                raise RuntimeError(error_msg + '\nSTDERR: ' + stderr)
         except Exception:
-            traceback.print_exc()
+            _LOG.error(traceback.format_exc())
             raise
 
-    # implement in child class
-    # return: (cmd, outpath)
     @abstractmethod
     def get_invocation(self):
+        """Return (cmd, outpath). cmd is a list of args for a single command,
+        or a list of lists for a pipeline of commands connected by pipes."""
         raise NotImplementedError(
             "get_invocation() should be implemented by subclasses")
 
-'''
-A BLASTN job that will run BLASTN to bin reads against the reference package
-marker genes
-'''
+
 class BlastnJob(Job):
+    """Run BLASTN to bin reads against the reference package marker genes."""
+
     def __init__(self, **kwargs):
         Job.__init__(self)
         self.job_type = 'blastn'
         self.outfmt = 0
-
-        # arguments for running BLASTN
-        self.path = '' 
+        self.path = ''
         self.query_path = ''
         self.database_path = ''
         self.outdir = ''
-        self.num_threads = 1 
+        self.num_threads = 1
 
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+    @staticmethod
+    def _awk_fastq_to_fasta_cmd():
+        """Return an awk command (as arg list) that converts FASTQ to FASTA."""
+        return ['awk', 'NR%4==1 {print ">"substr($0, 2)} NR%4==2 {print $0}']
+
+    def _blastn_cmd(self, query_source='-'):
+        """Return the core blastn command as a list."""
+        return [self.path, '-db', self.database_path,
+                '-outfmt', str(self.outfmt),
+                '-query', query_source,
+                '-out', self.outpath,
+                '-num_threads', str(self.num_threads)]
+
     def get_invocation(self):
-        #blast:database = blast/alignment.fasta.db
-        #blast:seq-to-marker-map = blast/seq2marker.tab
-        self.outpath = os.path.join(self.outdir, 'blast.alignment.out') 
+        self.outpath = os.path.join(self.outdir, 'blast.alignment.out')
 
-        # check input type: if .fasta as suffix then it is fine
-        # if .fasta.gz suffix, then use the file as stdin 
         name_parts = self.query_path.split('.')
-        suffix = name_parts[-1]
+        suffix = name_parts[-1].lower()
 
-        cmd = []
+        # FASTA files - direct input
+        if suffix in ('fa', 'fasta'):
+            cmd = self._blastn_cmd(query_source=self.query_path)
+            return cmd, self.outpath
 
-        # normal input type with fasta/fa files
-        if suffix in ['fa', 'fasta']:
-            cmd = [self.path, '-db', self.database_path,
-                    '-outfmt', str(self.outfmt),
-                    '-query', self.query_path,
-                    '-out', self.outpath,
-                    '-num_threads', str(self.num_threads)]
-        # awk to process fq and fastq files as input
-        elif suffix in ['fq', 'fastq']:
-            cmd.extend(['awk',
-                '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'',
-                '|'])
-        # gzip to process gzip and gz files as input
-        elif suffix in ['gz', 'gzip']: 
-            cmd.extend(['gzip', '-dc', self.query_path, '|'])
-            # check if this is fasta/fa gzip or fastq/fq gzip
-            if len(name_parts) > 2:
-                suffix2 = name_parts[-2]
+        # FASTQ files - convert to FASTA via awk, then pipe to blastn
+        if suffix in ('fq', 'fastq'):
+            pipeline = [
+                self._awk_fastq_to_fasta_cmd() + [self.query_path],
+                self._blastn_cmd(query_source='-'),
+            ]
+            return pipeline, self.outpath
 
-            # if we have another layer of fastq/fq to deal with, extend
-            # the cmd to deal with that
-            if suffix2 in ['fastq', 'fq']:
-                cmd.extend(['awk',
-                    '\'NR%4==1 {print \">\"substr($0, 2)} NR%4==2 {print $0}\'',
-                    '|'])
+        # Gzipped files - decompress, optionally convert FASTQ, then blastn
+        if suffix in ('gz', 'gzip'):
+            pipeline = [['gzip', '-dc', self.query_path]]
 
-            # piped query will go in to BLAST as stdin
-            cmd.extend([self.path, '-db', self.database_path,
-                    '-outfmt', str(self.outfmt),
-                    '-query', '-',
-                    '-out', self.outpath,
-                    '-num_threads', str(self.num_threads)])
-        # will raise ValueError when run, due to not having a recognizable
-        # input type
-        else:
-            return [], self.outpath
-        
-        return cmd, self.outpath
+            suffix2 = name_parts[-2].lower() if len(name_parts) > 2 else ''
+            if suffix2 in ('fastq', 'fq'):
+                pipeline.append(self._awk_fastq_to_fasta_cmd())
 
-'''
-A WITCH alignment job that will run WITCH to align a set of query reads
-to their target marker gene backbone alignment
-'''
+            pipeline.append(self._blastn_cmd(query_source='-'))
+            return pipeline, self.outpath
+
+        _LOG.warning(f"Unrecognized input format: '{suffix}' from {self.query_path}")
+        return [], self.outpath
+
 class WITCHAlignmentJob(Job):
+    """Run WITCH to align query reads to a marker gene backbone alignment."""
+
     def __init__(self, **kwargs):
         Job.__init__(self)
         self.job_type = 'witch-alignment'
-
-        # initialize parameters
         self.path = ''
         self.query_path = ''
         self.backbone_path = ''
@@ -276,26 +252,21 @@ class WITCHAlignmentJob(Job):
         self.outdir = ''
         self.num_cpus = 1
 
-        # set parameters
         for k, v in kwargs.items():
             setattr(self, k, v)
         self.kwargs = kwargs
-    
+
     def get_invocation(self):
         self.outpath = os.path.join(self.outdir, 'est.aln.masked.fasta')
-        cmd = [self.path, '-o', 'est.aln.fasta',
-                ]
-        # extend from additional kwargs
+        cmd = [self.path, '-o', 'est.aln.fasta']
         for k, v in self.kwargs.items():
             if k != 'path':
                 param_name = k.replace('_', '-')
                 cmd.extend([f"--{param_name}", str(v)])
         return cmd, self.outpath
 
-'''
-A BSCAMPP job that will run BSCAMPP for placing aligned query reads 
-'''
 class BscamppJob(Job):
+    """Run BSCAMPP for placing aligned query reads."""
     def __init__(self,
             path, query_alignment_path, backbone_alignment_path,
             backbone_tree_path, tree_model_path, outdir,
@@ -313,41 +284,33 @@ class BscamppJob(Job):
         self.num_cpus = num_cpus
         self.kwargs = kwargs
 
-        # override placement-method for BSCAMPP, if defined by the miscellaneous
-        # parameter "--bscampp-mode"
         if base_method is not None:
             self.kwargs['placement_method'] = base_method
 
     def get_invocation(self):
         self.outpath = os.path.join(self.outdir, 'placement.jplace')
         cmd = [self.path,
-                '-q', self.query_alignment_path,
-                '-a', self.backbone_alignment_path,
-                '-t', self.backbone_tree_path,
-                '-i', self.tree_model_path,
-                '-d', self.outdir,
-                '-o', 'placement',
-                '--num-cpus', str(self.num_cpus),
-                ]
-        # extend any additional kwargs specified for BSCAMPP
+               '-q', self.query_alignment_path,
+               '-a', self.backbone_alignment_path,
+               '-t', self.backbone_tree_path,
+               '-i', self.tree_model_path,
+               '-d', self.outdir,
+               '-o', 'placement',
+               '--num-cpus', str(self.num_cpus)]
         for k, v in self.kwargs.items():
-            # special case: not processing support_value (used later)
             if k == 'support_value':
                 continue
             param = k.replace('_', '-')
             cmd.extend([f'--{param}', str(v)])
-        return cmd, self.outpath 
+        return cmd, self.outpath
 
-'''
-A pplacer-taxtastic job that runs pplacer with the taxtastic refpkg
-'''
+
 class PplacerTaxtasticJob(Job):
-    def __init__(self,
-            path, query_alignment_path, refpkg_path, outdir, num_cpus,
-            **kwargs):
+    """Run pplacer with the taxtastic refpkg."""
+    def __init__(self, path, query_alignment_path, refpkg_path, outdir,
+                 num_cpus, **kwargs):
         Job.__init__(self)
         self.job_type = 'pplacer-taxtastic'
-
         self.path = path
         self.query_alignment_path = query_alignment_path
         self.refpkg_path = refpkg_path
@@ -359,73 +322,11 @@ class PplacerTaxtasticJob(Job):
     def get_invocation(self):
         self.outpath = os.path.join(self.outdir, 'placement.jplace')
         cmd = [self.path,
-                '-m', self.model_type,
-                '-c', self.refpkg_path,
-                '-o', self.outpath,
-                '-j', str(self.num_cpus),
-                self.query_alignment_path,
-                ]
-        ## extend any additional kwargs specified for BSCAMPP
-        #for k, v in self.kwargs.items():
-        #    # special case: not processing support_value (used later)
-        #    if k == 'support_value':
-        #        continue
-        #    param = k.replace('_', '-')
-        #    cmd.extend([f'--{param}', str(v)])
+               '-m', self.model_type,
+               '-c', self.refpkg_path,
+               '-o', self.outpath,
+               '-j', str(self.num_cpus),
+               self.query_alignment_path]
         return cmd, self.outpath
 
-'''
-A JsonMerger job for TIPP to read taxonomic information from a .jplace file
-with the corresponding taxonomic tree
-'''
-class TIPPJsonMergerJob(Job):
-    def __init__(self, **kwargs):
-        Job.__init__(self)
-        self.job_type = 'tippjsonmerger'
 
-        self.path = ''
-        self.taxonomy_path = ''
-        self.mapping_path = ''
-        self.classification_path = ''
-        self.outdir = ''
-
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def get_invocation(self):
-        self.outpath = os.path.join(self.outdir, 'tippjsonmerger.jplace') 
-        cmd = ['java', '-jar', self.path,
-                '-', '-', self.outpath,
-                '-t', self.taxonomy_path, '-m', self.mapping_path,
-                '-p', '0.0', '-C', '0.0', '-c', self.classification_path]
-        return cmd, self.classification_path
-
-'''
-A generic job that is designed for univeral types of additional jobs that
-a user/coder can add to TIPP3. just need to supplement the correct configuration
-in main.config or user.config
-NOTE: the binary executable path given needs to be executable
-'''
-class GenericJob(Job):
-    def __init__(self, **kwargs):
-        Job.__init__(self)
-        self.job_type = 'generic'
-
-        # note: [job_type, path, outpath] needs to be set from configuration file
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-    
-    def get_invocation(self):
-        outpath, cmd = None, None 
-        if getattr(self, 'outpath') != None:
-            outpath = self.outpath
-        if getattr(self, 'cmd') != None:
-            cmd = cmd.split()
-        
-        # raise Error for generic job that does not have a command 
-        if not outpath or not cmd:
-            _LOG.error(f"Generic Job {self.job_type} " 
-                "do not have outpath and cmd in configuration.")
-            exit(1)
-
-        return cmd, outpath

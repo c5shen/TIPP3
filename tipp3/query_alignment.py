@@ -1,9 +1,8 @@
-'''
-Aligning query reads to their assigned marker genes, using either BLASTN
-output or some other alignment method
-'''
+"""
+Align query reads to marker genes using WITCH or other methods.
+"""
 
-import os, time, shutil
+import os, shutil, subprocess
 from tipp3 import get_logger
 from tipp3.configs import Configs
 from tipp3.helpers.alignment_tools import Alignment
@@ -11,10 +10,9 @@ from tipp3.jobs import WITCHAlignmentJob
 
 _LOG = get_logger(__name__)
 
-'''
-Align query reads to marker genes with the user-defined alignment methods
-'''
+
 def queryAlignment(refpkg, query_paths):
+    """Align query reads to marker genes with the configured alignment method."""
     # query_alignments only retain query alignments
     # the backbone part is unnecessary
     _LOG.info(f"Started alignment method: {Configs.alignment_method}")
@@ -46,10 +44,8 @@ def queryAlignment(refpkg, query_paths):
         d2_path = os.path.join(alignment_dir, 'est.aln.masked.fasta.gz')
         skip_alignment = False
         if os.path.exists(d1_path) and os.stat(d1_path).st_size > 0:
-            # gzip the file (if successful, will remove d1_path)
             _LOG.info(f"Found existing alignment: {d1_path}, compressing...")
-            #os.system(f"lz4 --rm -f -q {d1_path} {d2_path}")
-            os.system(f"gzip {d1_path}")
+            subprocess.run(['gzip', d1_path], check=True)
             skip_alignment = True
         elif os.path.exists(d2_path) and os.stat(d2_path).st_size > 0:
             # keep the gzip file and avoid re-running the alignment step
@@ -76,16 +72,14 @@ def queryAlignment(refpkg, query_paths):
                 raise NotImplementedError(
                         f"Alignment method {Configs.alignment_method} " \
                         " is not implemented yet.")
-            # gzip the output masked file
-            # raw_alignment_path == d1_path
             raw_alignment_path = alignment_job.run(logging=True)
-            os.system(f"gzip {raw_alignment_path}")
-            #os.system(f"lz4 --rm -f -q {raw_alignment_path} {d2_path}")
+            subprocess.run(['gzip', raw_alignment_path], check=True)
 
-        # extract query alignment from {d2_path}
-        queryunaln = Alignment(); queryunaln.read_file_object(query_path)
+        queryunaln = Alignment()
+        queryunaln.read_file_object(query_path)
         query_keys = list(queryunaln.keys())
-        aln = Alignment(); aln.read_file_object(d2_path)
+        aln = Alignment()
+        aln.read_file_object(d2_path)
         subaln = aln.sub_alignment(query_keys)
         # write to local
         query_alignment_path = os.path.join(alignment_dir,

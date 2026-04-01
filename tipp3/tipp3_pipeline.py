@@ -1,181 +1,169 @@
+"""
+TIPP3 main pipeline: orchestrates binning, alignment, placement, and profiling.
+"""
+
 import time, os, sys, shutil
-from argparse import ArgumentParser, Namespace, RawDescriptionHelpFormatter
+from argparse import ArgumentParser
+from multiprocessing import Manager
+from concurrent.futures import ProcessPoolExecutor
 
 from tipp3 import get_logger, __version__
-from tipp3.configs import Configs, _root_dir, main_config_path, _read_config_file
-from tipp3.configs import *
+from tipp3.configs import (
+    Configs, _root_dir, main_config_path, _read_config_file,
+    buildConfigs, getConfigs,
+)
 from tipp3.refpkg_loader import loadReferencePackage, downloadReferencePackage
-from tipp3.query_binning import queryBinning 
+from tipp3.query_binning import queryBinning
 from tipp3.query_alignment import queryAlignment
 from tipp3.query_placement import queryPlacement
-from tipp3.query_abundance import getAllClassification, getAbundanceProfile, \
-        getSpeciesDetection 
+from tipp3.query_abundance import (
+    getAllClassification, getAbundanceProfile, getSpeciesDetection,
+)
 from tipp3.helpers.general_tools import SmartHelpFormatter
-
-from multiprocessing import Lock, Manager
-from concurrent.futures import ProcessPoolExecutor
 
 _LOG = get_logger(__name__)
 
-global levels, character_map, taxon_map, level_map, key_map
-character_map = {'A': 'T', 'a': 't', 'C': 'G', 'c': 'g', 'T': 'A',
-                 't': 'a', 'G': 'C', 'g': 'c', '-': '-'}
-levels = ["species", "genus", "family", "order",
-            "class", "phylum", "superkingdom"]
-# available subcommands. If nothing is provided, will default to 'abundance' 
-subcommands = ['abundance', 'download_refpkg']
+SUBCOMMANDS = ['abundance', 'download_refpkg', 'detection']
 
-'''
-Preset mode to run TIPP3 for abundance profiling
-'''
 def run_tipp3():
+    """Entry point for `tipp3-accurate` (WITCH + pplacer)."""
     tipp3_pipeline(mode='tipp3', subcommand='abundance')
 
-'''
-Preset mode to run TIPP3-fast for abundance profiling
-'''
+
 def run_tipp3_fast():
+    """Entry point for `tipp3` (BLAST + BSCAMPP)."""
     tipp3_pipeline(mode='tipp3-fast', subcommand='abundance')
 
-# Main pipeline of TIPP3
-def tipp3_pipeline(*args, **kwargs):
-    s1 = time.time()
-    m = Manager()
-    lock = m.Lock()
 
-    # (pre) parse arguments and build configurations
+def tipp3_pipeline(*args, **kwargs):
+    """Main TIPP3 pipeline: binning -> alignment -> placement -> profiling."""
+    s1 = time.time()
+
     parser, cmdline_args = parseArguments(
-            mode=kwargs.get('mode', None),
-            subcommand=kwargs.get('subcommand', None))
+        mode=kwargs.get('mode', None),
+        subcommand=kwargs.get('subcommand', None))
 
     if Configs.command == 'download_refpkg':
         downloadReferencePackage(Configs.outdir, Configs.decompress)
-    elif Configs.command == 'abundance' or Configs.command == 'detection':
-        # initialize ProcessPoolExecutor
-        _LOG.warning('Initializing ProcessorPoolExecutor instance...')
-        pool = ProcessPoolExecutor(Configs.num_cpus,
-                initializer=initiate_pool, initargs=(parser, cmdline_args,))
-        
-        # create output directory
-        if not os.path.exists(Configs.outdir):
-            os.makedirs(Configs.outdir)
+        _tipp3_finish(s1)
+        return
 
-        # (0) load refpkg
+    if Configs.command not in ('abundance', 'detection'):
+        _LOG.error(f"Unknown command: {Configs.command}")
+        sys.exit(1)
+
+    m = Manager()
+    lock = m.Lock()
+    _LOG.info('Initializing ProcessPoolExecutor...')
+    pool = ProcessPoolExecutor(
+        Configs.num_cpus,
+        initializer=initiate_pool, initargs=(parser, cmdline_args))
+
+    try:
+        os.makedirs(Configs.outdir, exist_ok=True)
+
+        # (0) Load reference package
         refpkg = loadReferencePackage(Configs.refpkg_path, Configs.refpkg_version)
 
-        # (1) read binning against the TIPP3 refpkg using BLAST
+        # (1) Read binning via BLAST
         query_paths, query_alignment_paths = queryBinning(refpkg, Configs.query_path)
         s2 = time.time()
-        _LOG.info(f"Runtime for mapping reads to marker genes (seconds): {s2 - s1}") 
+        _LOG.info(f"Runtime for query read binning (seconds): {s2 - s1}")
 
-        # (2) read alignment to corresponding marker genes
+        # (2) Read alignment
         if Configs.alignment_method != 'blast':
             query_alignment_paths = queryAlignment(refpkg, query_paths)
         s3 = time.time()
-        _LOG.info(f"Runtime for aligning reads to marker genes (seconds): {s3 - s2}") 
+        _LOG.info(f"Runtime for query read alignment (seconds): {s3 - s2}")
 
-        # early stop --> alignment-only 
+        # Early stop for alignment-only mode
         if Configs.alignment_only:
-            _LOG.warning("User specifies to output query alignment to marker "
-                    "genes only. Stopping TIPP3 now.")
-            _LOG.warning("You can find the alignment files at: "
-                    f"{os.path.join(Configs.outdir, 'query_alignments')}")
-            tipp3_stop(s1)
+            _LOG.info("Alignment-only mode: stopping after alignment. "
+                      f"Output: {os.path.join(Configs.outdir, 'query_alignments')}")
+            _tipp3_finish(s1)
+            return
 
-        # (3) read placement to corresponding marker gene taxonomic trees
+        # (3) Read placement
         query_placement_paths = queryPlacement(refpkg, query_alignment_paths)
         s4 = time.time()
-        _LOG.info(f"Runtime for placing reads to marker gene taxonomies (seconds): {s4 - s3}") 
+        _LOG.info(f"Runtime for query read placement (seconds): {s4 - s3}")
 
-        # (4) collect classification results
+        # (4) Classification and profiling
         classification_paths, filtered_paths = getAllClassification(
-                refpkg, query_placement_paths, pool, lock)
-        # --> Abundance profile
+            refpkg, query_placement_paths, pool, lock)
+
         if Configs.command == 'abundance':
             getAbundanceProfile(refpkg, filtered_paths)
             s5 = time.time()
-            _LOG.info(f"Runtime for obtaining abundance profile (seconds): {s5 - s4}") 
-        # --> Species detection
+            _LOG.info(f"Runtime for abundance profiling (seconds): {s5 - s4}")
+
         elif Configs.command == 'detection':
-            # default output files:
-            #   > B=0.2, detected_species_conservative.tsv
-            #   > B=0.12, detected_species_sensitive.tsv
-            #   > (if any) B=custom, detected_species_custom.tsv
             detection_thresholds = {'conservative': 0.2, 'sensitive': 0.12}
-            if Configs.detection_threshold != None:
-                # sanity check to make sure the user-defined value
-                # is within the bound
+            if Configs.detection_threshold is not None:
                 dt = Configs.detection_threshold
-                if dt < 0. or dt > 1.:
-                    _LOG.warning(
-                        f"User-defined detection threshold ({dt}) out of bound, ignored.")
-                else:
+                if 0.0 <= dt <= 1.0:
                     detection_thresholds['custom'] = dt
+                else:
+                    _LOG.warning(
+                        f"Detection threshold {dt} out of [0, 1] range, ignored.")
 
             getSpeciesDetection(detection_thresholds, refpkg, classification_paths)
             s5 = time.time()
-            _LOG.info(f"Runtime for detecting species (seconds): {s5 - s4}") 
+            _LOG.info(f"Runtime for species detection (seconds): {s5 - s4}")
 
-        # close ProcessPoolExecutor
-        _LOG.warning('Closing ProcessPoolExecutor instance...')
-        pool.shutdown()
-        _LOG.warning('ProcessPoolExecutor instance closed.')
+    finally:
+        _LOG.info('Shutting down ProcessPoolExecutor...')
+        pool.shutdown(wait=True)
 
-        # cleaning up temporary files
-        if not Configs.keeptemp:
-            _LOG.info("Removing intermediate output files...")
-            tipp3_clean_temp()
-            s6 = time.time()
-            _LOG.info(f"Runtime for cleaning temporary files (seconds): {s6 - s5}") 
+    if not Configs.keeptemp:
+        _LOG.info("Cleaning up intermediate files...")
+        _tipp3_clean_temp()
 
-    # stop TIPP3
-    tipp3_stop(s1)
+    _tipp3_finish(s1)
 
-def tipp3_clean_temp():
-    temp_dirs = ['blast_output', 'query', 'query_alignments',
-            'query_placements']#, 'query_classifications']
+
+def _tipp3_clean_temp():
+    """Remove intermediate output directories."""
+    temp_dirs = ['blast_output', 'query', 'query_alignments', 'query_placements']
     for temp in temp_dirs:
-        shutil.rmtree(os.path.join(Configs.outdir, temp))
-        _LOG.info(f"Removed {temp}")
+        path = os.path.join(Configs.outdir, temp)
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+            _LOG.debug(f"Removed {path}")
+        else:
+            _LOG.debug(f"Skipping {path} (not found)")
 
-def tipp3_stop(start_time):
-    send = time.time()
-    _LOG.info('TIPP3 completed in {} seconds...'.format(send - start_time))
-    #print('TIPP3 completed in {} seconds...'.format(s2 - start_time))
-    exit(0)
 
-'''
-Init function for a queue and get configurations for each worker
-'''
+def _tipp3_finish(start_time):
+    """Log completion time."""
+    elapsed = time.time() - start_time
+    _LOG.info(f'TIPP3 completed in {elapsed} seconds.')
+
 def initiate_pool(parser, cmdline_args):
+    """Initialize each worker process with the current configuration."""
     buildConfigs(parser, cmdline_args, child_process=True)
 
-'''
-parse argument and populate Configs
-'''
-def parseArguments(mode=None, subcommand=None):
-    parser = _init_parser(mode)
 
+def parseArguments(mode=None, subcommand=None):
+    """Parse command-line arguments and build Configs."""
+    parser = _init_parser(mode)
     cmdline_args = sys.argv[1:]
-    # check if subcommand is provided, if not try to append a subcommand
-    # if the default is given (e.g., running the binary `tipp3` or
-    # `tipp3-accurate`
-    if cmdline_args[0] not in subcommands:
-        # check if it is an argument or an invalid subcommand
+
+    if not cmdline_args:
+        parser.print_help()
+        sys.exit(1)
+
+    if cmdline_args[0] not in SUBCOMMANDS:
         if cmdline_args[0].startswith('-') and subcommand is not None:
             cmdline_args = [subcommand] + cmdline_args
 
     buildConfigs(parser, cmdline_args)
-    #_LOG = get_logger(__name__, log_path=Configs.log_path)
-
     getConfigs(arguments=cmdline_args)
-    _LOG.info('TIPP3 is running with: {}'.format(' '.join(cmdline_args)))
+    _LOG.info(f'TIPP3 v{__version__} running: {" ".join(cmdline_args)}')
     return parser, cmdline_args
 
-'''
-initialize parser to read user inputs
-'''
 def _init_parser(mode=None):
+    """Build the argument parser with all subcommands and options."""
     # example usages
     example_usages = '''Example usages:
 > abundance: run default for profiling (TIPP3-fast)
@@ -198,7 +186,6 @@ def _init_parser(mode=None):
                 "and abundance profiling tool for metagenomic reads."),
             conflict_handler='resolve',
             epilog=example_usages,
-            #formatter_class=RawDescriptionHelpFormatter)
             formatter_class=SmartHelpFormatter)
     parser.add_argument('-v', '--version', action='version',
         version="%(prog)s " + __version__)

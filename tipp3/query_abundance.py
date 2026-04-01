@@ -1,149 +1,120 @@
-import os, sys, json
+import csv
+import os, json
 from collections import defaultdict
+import concurrent.futures
 
 from tipp3.configs import Configs
 from tipp3 import get_logger
-from tipp3.jobs import TIPPJsonMergerJob
-
-#from tqdm import tqdm
-#from tipp3.helpers.general_tools import tqdm_styles
-
-import concurrent.futures
 
 _LOG = get_logger(__name__)
 
-# taxonomic ranks
-ranks = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom']
+RANKS = ['species', 'genus', 'family', 'order', 'class', 'phylum', 'superkingdom']
 
-'''
-Function to detect existing species based on all read classifications
-Also can implement for detection at other taxonomic levels (default to species)
-'''
-def getSpeciesDetection(detection_thresholds,
-        refpkg, classification_paths, rank='species'):
+def getSpeciesDetection(detection_thresholds, refpkg, classification_paths,
+                        rank='species'):
+    """Detect species (or other taxa) based on read classification confidences."""
     _LOG.info(f"Detecting at taxonomic level: {rank.upper()}")
-    # read in species to marker map from refpkg['taxonomy']
     species_to_marker = parseSpeciesToMarker(
-            refpkg['taxonomy']['species-to-marker-map'])
-    # read in taxid_map from refpkg
+        refpkg['taxonomy']['species-to-marker-map'])
     taxid_map = parseTaxonomy(refpkg['taxonomy']['taxonomy'])
 
-    # find the idx position of corresponding rank
     try:
-        rank_idx = ranks.index(rank)
+        rank_idx = RANKS.index(rank)
     except ValueError:
-        # default to species
         rank_idx = 0
 
-    # (1) go over each read classification and record the corresponding 
-    # likelihood-weight ratios (lwr) from each marker.
-    # (2) for each marker, obtain the average of lwr of each species.
-    # (3) for each {rank}, obtain the average of lwr from all voting markers.
-    # fields: read name,taxid,taxname,rank,support value
+    # Aggregate likelihood-weight ratios per marker, then average across markers
     detected = defaultdict(float)
     for marker, classification_path in classification_paths.items():
-        # extract all lines that are marked as ",{rank},"
         marker_detected = defaultdict(float)
         marker_cnt = defaultdict(int)
-        cmd = f"cat {classification_path} | awk /,{rank},/"
-        entries = os.popen(cmd).read().strip().split('\n')
-        for entry in entries:
-            parts = entry.split(',')
-            name, taxid, supp = parts[0], int(parts[1]), float(parts[-1])
-            marker_detected[taxid] += supp
-            marker_cnt[taxid] += 1
 
-        # marker_confidence -> the average of lwr for each species,
-        # from all voting markers
-        for taxid in marker_detected.keys():
+        with open(classification_path, 'r', newline='') as f:
+            reader = csv.reader(f)
+            for parts in reader:
+                if len(parts) < 5:
+                    continue
+                if parts[-2] != rank:
+                    continue
+                try:
+                    name, taxid, supp = parts[0], int(parts[1]), float(parts[-1])
+                except (ValueError, IndexError):
+                    continue
+                marker_detected[taxid] += supp
+                marker_cnt[taxid] += 1
+
+        for taxid in marker_detected:
             detected[taxid] += marker_detected[taxid] / marker_cnt[taxid]
 
-    # sort detected taxids by their marker confidences
-    detected_taxids = sorted([k for k in detected.keys()],
-            key=lambda x: detected[x] / len(species_to_marker[x]),
-            reverse=True)
+    detected_taxids = sorted(
+        detected.keys(),
+        key=lambda x: detected[x] / max(len(species_to_marker.get(x, [1])), 1),
+        reverse=True)
 
-    # check the total number of mapped markers for each taxid
-    outpath = os.path.join(Configs.outdir, f"detected_{rank}_UNFILTERD.tsv")
+    outpath = os.path.join(Configs.outdir, f"detected_{rank}_UNFILTERED.tsv")
     _LOG.info(f"Writing UNFILTERED {rank} detection to {outpath}")
     with open(outpath, 'w') as f:
         f.write("taxa\ttaxid\tmarker_confidence\n")
         for taxid in detected_taxids:
-            taxname = taxid_map[taxid][0]
-            marker_confidence = detected[taxid] / len(species_to_marker[taxid])
+            taxname = taxid_map.get(taxid, (str(taxid),))[0]
+            n_markers = max(len(species_to_marker.get(taxid, [1])), 1)
+            marker_confidence = detected[taxid] / n_markers
             f.write(f"{taxname}\t{taxid}\t{marker_confidence}\n")
 
-    # write a filtered version based on given threshold
     for suffix, thres in detection_thresholds.items():
         outpath = os.path.join(Configs.outdir, f"detected_{rank}_{suffix}.tsv")
         _LOG.info(f"Writing {suffix} (B={thres}) {rank} detection to {outpath}")
         with open(outpath, 'w') as f:
             f.write("taxa\ttaxid\tmarker_confidence\n")
             for taxid in detected_taxids:
-                taxname = taxid_map[taxid][0]
-                mc = detected[taxid] / len(species_to_marker[taxid])
-                # detected_taxids are sorted by marker confidence in descending
-                # order, so breaking here will present writing anything below
-                # the threshold value
+                taxname = taxid_map.get(taxid, (str(taxid),))[0]
+                n_markers = max(len(species_to_marker.get(taxid, [1])), 1)
+                mc = detected[taxid] / n_markers
                 if mc < thres:
                     break
                 f.write(f"{taxname}\t{taxid}\t{mc}\n")
 
-'''
-Function to parse filtered classification files and aggregate their abundances
-to produce the abundance profile on all taxonomic levels
-'''
 def getAbundanceProfile(refpkg, filtered_paths):
+    """Aggregate filtered classifications into an abundance profile per rank."""
     _LOG.info("Aggregating abundances for a profile")
 
-    # initializing abundance profile at each taxonomic level
-    abundance_profile = {}
-    for rank in ranks:
-        abundance_profile[rank] = defaultdict(float)
-    
-    # read in taxid_map from refpkg
+    abundance_profile = {rank: defaultdict(float) for rank in RANKS}
     taxid_map = parseTaxonomy(refpkg['taxonomy']['taxonomy'])
 
-    # aggregating results from all markers
     for marker, filtered_path in filtered_paths.items():
         updateAbundanceProfile(filtered_path, abundance_profile)
 
-    # compute percentage at each rank
-    _LOG.info("Writing abundance profiles at each taxonomic level to "
-            f"{Configs.outdir}") 
-    for rank in ranks:
+    _LOG.info(f"Writing abundance profiles at each taxonomic level to {Configs.outdir}")
+    for rank in RANKS:
         rank_sum = sum(abundance_profile[rank].values())
-        for taxid in abundance_profile[rank].keys():
+        if rank_sum == 0:
+            _LOG.warning(f"No classifications found at rank '{rank}', skipping.")
+            continue
+        for taxid in abundance_profile[rank]:
             abundance_profile[rank][taxid] /= rank_sum
 
-        # write to Configs.outdir as abundance.<rank>.tsv
         outpath = os.path.join(Configs.outdir, f"abundance.{rank}.tsv")
-        slist = sorted([(k, v) for k, v in abundance_profile[rank].items()],
-                key=lambda x: x[1], reverse=True)
+        slist = sorted(abundance_profile[rank].items(),
+                       key=lambda x: x[1], reverse=True)
         with open(outpath, 'w') as f:
             f.write('taxa\ttaxid\tabundance\n')
-            for (taxid, abundance) in slist:
-                # unclassified
+            for taxid, abundance in slist:
                 if taxid == 0:
-                    f.write('unclassified\t0\t{}\n'.format(abundance))
+                    f.write(f'unclassified\t0\t{abundance}\n')
                 else:
-                    taxname = taxid_map[taxid][0]
-                    f.write('{}\t{}\t{}\n'.format(taxname, taxid, abundance))
-        _LOG.info(f"Finished written rank: {rank}") 
+                    taxname = taxid_map.get(taxid, (str(taxid),))[0]
+                    f.write(f'{taxname}\t{taxid}\t{abundance}\n')
+        _LOG.info(f"Finished writing rank: {rank}")
 
-'''
-Function to obtain all read classifications
-'''
 def getAllClassification(refpkg, query_placement_paths, pool, lock):
-    # (1) obtain classification
+    """Obtain all read classifications from placement results."""
     _LOG.info("Obtaining read classification from all marker genes")
-    classification_paths = {} 
+    classification_paths = {}
 
-    # failsafe when no placement file are given
-    if len(query_placement_paths) == 0:
-        _LOG.warning("No placements are found for classification or " \
-                "abundance profile, returning...")
-        return
+    if not query_placement_paths:
+        _LOG.warning("No placements found for classification. "
+                     "This may indicate no reads mapped to marker genes.")
+        return {}, {}
 
     futures = []
     for marker, query_placement_path in query_placement_paths.items():
@@ -179,293 +150,239 @@ def getAllClassification(refpkg, query_placement_paths, pool, lock):
     except (AttributeError, ValueError) as e:
         pass
 
-    # Updated @ 7.7.2025 - Chengze Shen
-    #   - only filter if command is for abundance
     filtered_paths = {}
     if Configs.command == 'abundance':
         _LOG.info(f"Filtering with support value={support_value}")
         for marker, classification_path in classification_paths.items():
             clas_outdir = os.path.join(Configs.outdir, 'query_classifications',
-                    marker)
+                                       marker)
             taxonomy_path = refpkg[marker]['taxonomy']
             if not os.path.exists(taxonomy_path):
-                taxonomy_path = os.path.join(os.path.dirname(taxonomy_path),
-                        'all_taxon.taxonomy')
-            filtered_path = os.path.join(clas_outdir,
-                    f"placement.classification.{support_value.split('.')[-1]}")
-            filterClassification(taxonomy_path,
-                    classification_path, filtered_path, float(support_value))
+                taxonomy_path = os.path.join(
+                    os.path.dirname(taxonomy_path), 'all_taxon.taxonomy')
+            filtered_path = os.path.join(
+                clas_outdir,
+                f"placement.classification.{support_value.split('.')[-1]}")
+            filterClassification(taxonomy_path, classification_path,
+                                 filtered_path, float(support_value))
             filtered_paths[marker] = filtered_path
 
-        # Updated @ 1.22.2025 - Chengze Shen
-        #   - aggregate all classifications and output to a file as well
-        # (2.5) aggregate all classifications
-        all_classification_path = os.path.join(Configs.outdir,
-                'query_classifications.tsv')
-        header = False
+        # Aggregate all classifications into a single output file
+        all_classification_path = os.path.join(
+            Configs.outdir, 'query_classifications.tsv')
+        header_written = False
         with open(all_classification_path, 'w') as f:
             for marker, filtered_path in filtered_paths.items():
                 with open(filtered_path, 'r') as fptr:
                     lines = fptr.read().strip().split('\n')
-                if not header:
+                if not lines:
+                    continue
+                if not header_written:
                     f.write(lines[0] + '\n')
-                    header = True
-                f.write('\n'.join(lines[1:]) + '\n')
+                    header_written = True
+                if len(lines) > 1:
+                    f.write('\n'.join(lines[1:]) + '\n')
 
     return classification_paths, filtered_paths
 
-'''
-Function to update a given abundance profile with the new results
-read from the given inpath.
-NOTE: updates are "counts", proportions will be calculated later
-'''
 def updateAbundanceProfile(inpath, abundance_profile):
+    """Update abundance profile counts from a filtered classification file."""
     with open(inpath, 'r') as f:
         lines = f.read().strip().split('\n')
-        # skip header
         for i in range(1, len(lines)):
             parts = lines[i].split('\t')
-            taxon = parts[0]
-            # fields 1-7 should be what we want
-            fields = [int(x) if x != 'NA' else 0 for x in parts[1:]]
-            # not classified at all, ignore
+            if len(parts) < 2:
+                continue
+            fields = [int(x) if x.upper() != 'NA' else 0 for x in parts[1:]]
             if sum(fields) == 0:
                 continue
-            
-            for j in range(len(ranks)):
-                abundance_profile[ranks[j]][fields[j]] += 1
+            for j in range(min(len(RANKS), len(fields))):
+                abundance_profile[RANKS[j]][fields[j]] += 1
 
-'''
-Function to parse a given taxonomy file (all_taxon.taxonomy)
-'''
 def parseTaxonomy(inpath):
+    """Parse taxonomy file (all_taxon.taxonomy) into a taxid->(name, parent, rank) map.
+
+    Uses csv.reader to correctly handle quoted fields (some taxon names
+    contain commas).
+    """
     taxid_map = {}
-    with open(inpath, 'r') as f:
-        for line in f:
-            # skip header
-            if line.startswith('tax_id'):
+    with open(inpath, 'r', newline='') as f:
+        reader = csv.reader(f)
+        next(reader, None)  # skip header
+        for row in reader:
+            if len(row) < 4:
                 continue
-            parts = line.strip().split(',')
-            taxid, rank, parent_id, taxname = \
-                int(parts[0]), parts[2], int(parts[1]), parts[3]
+            taxid = int(row[0])
+            parent_id = int(row[1])
+            rank = row[2]
+            taxname = row[3]
             taxid_map[taxid] = (taxname, parent_id, rank)
     return taxid_map
 
-'''
-Function to parse a given species to marker map file (species_to_marker.tsv)
-'''
+
 def parseSpeciesToMarker(inpath):
+    """Parse species-to-marker map file (species_to_marker.tsv)."""
     species_to_marker = defaultdict(list)
     with open(inpath, 'r') as f:
-        # fields: tax_id \t num_marker \t marker
         for line in f:
-            # skip header
             if line.startswith('tax_id'):
                 continue
             parts = line.strip().split('\t')
-            species, num_marker, markers = \
-                int(parts[0]), int(parts[1]), parts[2].split(',')
-            species_to_marker[species] = markers 
+            if len(parts) < 3:
+                continue
+            species = int(parts[0])
+            markers = parts[2].split(',')
+            species_to_marker[species] = markers
     return species_to_marker
 
-'''
-Function to reorder a .jplace file to a standard format for reading
-'''
 def reorderJson(inpath, outpath):
-    fh = open(inpath, 'r')
-    s_tree = ""
-    obj = json.load(fh)
-    newobj = {}
+    """Reorder a .jplace file to a standard field order for classification."""
+    with open(inpath, 'r') as fh:
+        obj = json.load(fh)
 
-    # obtain old order
     old_order = obj['fields']
-
     new_plc_order = ['edge_num', 'likelihood', 'like_weight_ratio',
-            'distal_length', 'pendant_length']
-    
-    # (1) tree
-    newobj['tree'] = obj['tree']
-    s_tree = obj['tree'].strip()
+                     'distal_length', 'pendant_length']
 
-    # (2) placements in different order
-    newobj['placements'] = [] 
+    newobj = {
+        'tree': obj['tree'],
+        'placements': [],
+    }
+
     for placement in obj['placements']:
         if 'nm' in placement:
-            ori_p, ori_n = placement['p'], placement['nm']
-            ori_n = [x[0] for x in ori_n]
+            ori_p, ori_n = placement['p'], [x[0] for x in placement['nm']]
         else:
             ori_p, ori_n = placement['p'], placement['n']
         new_p = []
         for pp in ori_p:
-            #new_p.append([pp[1], pp[3], pp[2], pp[0], pp[-1]])
             pp_map = {old_order[i]: pp[i] for i in range(len(pp))}
-            tmp = [pp_map[new_plc_order[i]] for i in range(len(new_plc_order))]
+            tmp = [pp_map[field] for field in new_plc_order]
             new_p.append(tmp)
-        _dict = {'p': new_p, 'n': ori_n}
-        newobj['placements'].append(_dict)
-    # (3) remaining fields 
+        newobj['placements'].append({'p': new_p, 'n': ori_n})
+
     newobj['metadata'] = obj['metadata']
     newobj['version'] = obj['version']
     newobj['fields'] = new_plc_order
 
-    # write to outpath
-    ofh = open(outpath, 'w')
-    json.dump(newobj, ofh, indent = 4)
-    ofh.close()
-    fh.close()
+    with open(outpath, 'w') as ofh:
+        json.dump(newobj, ofh, indent=4)
 
-    # create stdindata
-    s_tree = s_tree.replace("{", "[")
-    s_tree = s_tree.replace("}", "]")
-    mergeinput = [s_tree]
-    mergeinput.append('{}\n{}'.format(s_tree, outpath))
-    mergeinput.append("")
-    mergeinput.append("")
-    s_mergeinput = '\n'.join(mergeinput)
-    return s_mergeinput
-
-'''
-Function to obtain the taxonomic classification based on placement result,
-for the given marker gene taxonomic tree
-'''
 def getClassification(marker, taxonomy_path, mapping_path,
-        ori_jplace_path, jplace_path,
-        outdir, classification_path, lock):
-    # reorder output .jplace file from the placement method
-    stdindata = reorderJson(ori_jplace_path, jplace_path)
-    
-    # run TIPPJsonMerger software; skip if classification is already there
-    if not (os.path.exists(classification_path) \
-            and os.stat(classification_path).st_size > 0):
-        tippjsonmerger_job = TIPPJsonMergerJob(path=Configs.tippjsonmerger_path,
-                taxonomy_path=taxonomy_path, mapping_path=mapping_path,
-                outdir=outdir, classification_path=classification_path)
-        _ = tippjsonmerger_job.run(stdin=stdindata)
+                      ori_jplace_path, jplace_path,
+                      outdir, classification_path, lock):
+    """Obtain taxonomic classification for a marker gene from placement results."""
+    from tipp3.jplace_classifier import classify_jplace
 
-    # remove reordered jplace file and tippjsonjob jplace output
-    to_remove = [jplace_path, os.path.join(outdir, 'tippjsonmerger.jplace')]
-    for item in to_remove:
-        if os.path.exists(item):
-            os.remove(item)
+    reorderJson(ori_jplace_path, jplace_path)
+
+    if not (os.path.exists(classification_path)
+            and os.stat(classification_path).st_size > 0):
+        classify_jplace(
+            jplace_path=jplace_path,
+            taxonomy_path=taxonomy_path,
+            mapping_path=mapping_path,
+            classification_path=classification_path,
+            threshold=0.0,
+            cutoff=0.0,
+        )
+
+    if os.path.exists(jplace_path):
+        os.remove(jplace_path)
 
     return marker, classification_path
 
-'''
-Function to load in taxonomy
-'''
 def loadTaxonomy(taxonomy_file, lower=True):
-    f = open(taxonomy_file, 'r')
+    """Load full taxonomy with level maps for classification filtering.
 
-    # First line is the keywords for the taxonomy, need to map the keyword to
-    # the positional index of each keyword
-    results = f.readline().lower().replace('"', '').strip().split(',')
-    key_map = dict([(results[i], i) for i in range(0, len(results))])
+    Uses csv.reader to correctly handle quoted fields (some taxon names
+    contain commas).
+    """
+    with open(taxonomy_file, 'r', newline='') as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        header = [h.lower().strip() for h in header]
+        key_map = {header[i]: i for i in range(len(header))}
 
-    # Now fill up taxonomy, level maps keep track of what taxa exist at each
-    # level, taxon_map keep track of entire taxonomy
-    taxon_map = {}
-    level_map = {"species": {}, "genus": {}, "family": {}, "order": {},
-            "class": {}, "phylum": {}, "superkingdom": {}}
+        taxon_map = {}
+        level_map = {level: {} for level in RANKS}
 
-    for line in f:
-        results = line.replace('"', '').strip()
-        if (lower):
-            results.lower()
-        results = results.split(',')
-        # insert into taxon map
-        taxon_map[results[0]] = results
+        for row in reader:
+            if lower:
+                row = [cell.lower() for cell in row]
+            taxon_map[row[0]] = row
 
-        # insert into level map
-        for level in ranks:
-            if (results[key_map[level]] == ''):
-                continue
-            else:
-                if (results[key_map[level]] not in level_map[level]):
-                    level_map[level][results[key_map[level]]] = {}
-                level_map[level][results[key_map[level]]][results[0]] = \
-                    results[0]
-    return (taxon_map, level_map, key_map)
+            for level in RANKS:
+                if key_map.get(level) is None:
+                    continue
+                idx = key_map[level]
+                if idx >= len(row):
+                    continue
+                val = row[idx]
+                if val == '':
+                    continue
+                if val not in level_map[level]:
+                    level_map[level][val] = {}
+                level_map[level][val][row[0]] = row[0]
 
-'''
-Function to filter classification output from a marker gene by a given
-support value
-'''
+    return taxon_map, level_map, key_map
+
 def filterClassification(taxonomy_path, classification_path, filtered_path,
-        threshold):
+                         threshold):
+    """Filter classification output by a support value threshold."""
     taxon_map, level_map, key_map = loadTaxonomy(taxonomy_path)
-    
-    class_in = open(classification_path, 'r')
-    level_map_hierarchy = {"species": 0, "genus": 1, "family": 2, "order": 3,
-                "class": 4, "phylum": 5, "superkingdom": 6,
-                "root": 7}
-    # Need to keep track of last line so we can determine when we switch to
-    # new classification
+
+    level_map_hierarchy = {
+        "species": 0, "genus": 1, "family": 2, "order": 3,
+        "class": 4, "phylum": 5, "superkingdom": 6, "root": 7
+    }
     old_name, old_id, old_rank, old_probability = "", "", "", 1
 
-    # keep track of all fragment names
-    names = {}
     classification = {}
-    for line in class_in:
-        results = line.strip().split(',')
-        if (len(results) > 5):
-            results = [results[0], results[1], results[2],
-                       results[-2], results[-1]]
-        (name, id, taxname, rank, probability) = (
-            results[0], results[1], results[2], results[3], float(results[4]))
-        names[name] = name
-        if (name != old_name):
-            # when we switch to new fragment, output last classification for
-            # old fragment
-            if (old_name != ""):
-                lineage = taxon_map[old_id]
-                output_line = [old_name]
-                for level in ranks:
-                    clade = lineage[key_map[level]]
-                    if (clade == ""):
-                        clade = "NA"
-                    output_line.append(clade)
-                classification[old_name] = output_line
-            old_name = name
-            old_rank = "root"
-            old_probability = 1
-            old_id = '1'
+    with open(classification_path, 'r', newline='') as class_in:
+        reader = csv.reader(class_in)
+        for results in reader:
+            if len(results) < 5:
+                continue
+            name, id_, taxname, rank, probability = (
+                results[0], results[1], results[2],
+                results[-2], float(results[-1]))
 
-        # Switch to new rank if the new probability is higher than threshold
-        # and our rank is more specific than our original rank
-        if (
-            rank in level_map_hierarchy and
-            (level_map_hierarchy[old_rank] > level_map_hierarchy[rank]) and
-            (probability > threshold)
-           ):
-            old_rank = rank
-            old_probability = probability
-            old_id = id
-        # Switch to new rank if the new rank matches old rank but has higher
-        # probability
-        elif (
-              rank in level_map_hierarchy and
-              (level_map_hierarchy[old_rank] == level_map_hierarchy[rank]) and
-              (probability > old_probability)
-             ):
-            old_rank = rank
-            old_probability = probability
-            old_id = id
+            if name != old_name:
+                if old_name != "" and old_id in taxon_map:
+                    lineage = taxon_map[old_id]
+                    output_line = [old_name]
+                    for level in RANKS:
+                        clade = lineage[key_map[level]]
+                        output_line.append(clade if clade != "" else "NA")
+                    classification[old_name] = output_line
+                old_name = name
+                old_rank = "root"
+                old_probability = 1
+                old_id = '1'
 
-    if old_id in taxon_map:
+            if (rank in level_map_hierarchy
+                    and level_map_hierarchy[old_rank] > level_map_hierarchy[rank]
+                    and probability > threshold):
+                old_rank = rank
+                old_probability = probability
+                old_id = id_
+            elif (rank in level_map_hierarchy
+                  and level_map_hierarchy[old_rank] == level_map_hierarchy[rank]
+                  and probability > old_probability):
+                old_rank = rank
+                old_probability = probability
+                old_id = id_
+
+    if old_name != "" and old_id in taxon_map:
         lineage = taxon_map[old_id]
         output_line = [old_name]
-        for level in ranks:
+        for level in RANKS:
             clade = lineage[key_map[level]]
-            if (clade == ""):
-                clade = "NA"
-            output_line.append(clade)
-        classification[name] = output_line
-    class_in.close()
+            output_line.append(clade if clade != "" else "NA")
+        classification[old_name] = output_line
 
-    # write to filtered_path    
     with open(filtered_path, 'w') as class_out:
         class_out.write("fragment\tspecies\tgenus\tfamily\torder\tclass\tphylum\tsuperkingdom\n")
-        keys = list(classification.keys())
-        keys.sort()
-        for frag in keys:
-            class_out.write("%s\n" % "\t".join(classification[frag]))
+        for frag in sorted(classification.keys()):
+            class_out.write("\t".join(classification[frag]) + "\n")

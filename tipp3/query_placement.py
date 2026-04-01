@@ -1,8 +1,8 @@
-'''
-Place reads to marker gene taxonomic tree using a placement method
-'''
+"""
+Place reads onto marker gene taxonomic trees.
+"""
 
-import os, time, shutil
+import os, shutil
 from tipp3 import get_logger
 from tipp3.configs import Configs
 from tipp3.jobs import BscamppJob, PplacerTaxtasticJob
@@ -10,11 +10,8 @@ from tipp3.jobs import BscamppJob, PplacerTaxtasticJob
 _LOG = get_logger(__name__)
 
 
-'''
-Place query reads to their assigned marker gene taxonomic trees using the
-user-defined phylogenetic placement method
-'''
 def queryPlacement(refpkg, query_alignment_paths):
+    """Place aligned query reads onto marker gene taxonomic trees."""
     _LOG.info(f"Started placement method: {Configs.placement_method}")
 
     query_placement_paths = {}
@@ -27,15 +24,13 @@ def queryPlacement(refpkg, query_alignment_paths):
     _LOG.info("(From main.config) parameter options for " \
             f"{Configs.placement_method}: {additional_kwargs}")
 
-    # failsafe when no alignments are given
-    if len(query_alignment_paths) == 0:
-        _LOG.warning("No alignments are given for placements, returning...")
+    if not query_alignment_paths:
+        _LOG.warning("No alignments provided for placement.")
         return query_placement_paths
-    
-    # removing temporary files that we do not care
-    temp_folders = ['tmp0']
 
-    idx = 0; total = len(query_alignment_paths) 
+    temp_folders = ['tmp0']
+    idx = 0
+    total = len(query_alignment_paths)
     for marker, query_alignment_path in query_alignment_paths.items():
         _LOG.info("Placing aligned query reads for " \
                 f"{marker}") #from {query_alignment_path}")

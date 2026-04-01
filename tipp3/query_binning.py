@@ -1,8 +1,9 @@
-'''
-Read binning using BLASTN
-'''
+"""
+Read binning: map reads to marker genes using BLASTN.
+"""
 
-import os, time, shutil
+import ast
+import os, shutil
 from collections import defaultdict
 
 from tipp3 import get_logger
@@ -13,15 +14,8 @@ from tipp3.extract_blast_alignment import reverseComplement, \
 
 _LOG = get_logger(__name__)
 
-# simple reverse complement map 
-#global complement_map
-#complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
-
-'''
-Map reads to refpkg using BLASTN, then process the reads to extract
-their assignments and/or alignments to marker genes
-'''
 def queryBinning(refpkg, query_path):
+    """Map reads to refpkg using BLASTN and extract marker gene assignments."""
     database_path = refpkg['blast']['database']
     _LOG.info(f"Initializing BlastnJob with BLASTN database: {database_path}")
 
@@ -73,10 +67,8 @@ def queryBinning(refpkg, query_path):
 
     return query_paths, query_alignment_paths
 
-'''
-process the BLASTN output, extract assignment information and/or alignment
-'''
 def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
+    """Process BLASTN output: extract assignment info and optional alignment."""
     # seq-to-marker map
     map_path = refpkg['blast']['seq-to-marker-map']
     gene_mapping = readGeneMapping(map_path)
@@ -130,7 +122,7 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
             # remove empty marker gene outputs
             if marker_fptr[marker]['count'] == 0:
                 _LOG.debug(f'{marker} has no assigned queries, removing {_path}')
-                os.system('rm {}'.format(_path))
+                os.remove(_path)
             else:
                 query_blast_paths[marker] = marker_fptr[marker]['path']
 
@@ -146,72 +138,57 @@ def processBlastnOutput(refpkg, blastn_outpath, blastn_outdir):
 
 ######################## HELPER FUNCTIONS ###########################
 
-#'''
-#helper function to obtain the reverse complement of a sequence
-#'''
-#def reverseComplement(seq):
-#    try:
-#        char_list = [complement_map[c] for c in seq]
-#    except KeyError:
-#        char_list = [complement_map[c] if c in complement_map else c for c in seq]
-#    new_seq = ''.join(char_list)
-#    return new_seq[::-1]
-
-'''
-helper function to read marker gene mapping
-'''
 def readGeneMapping(map_path, delimiter='\t'):
+    """Read the seq-to-marker gene mapping file."""
     mapping = {}
     with open(map_path, 'r') as f:
         for line in f:
             parts = line.strip().split(delimiter)
-            mapping[parts[0]] = parts
+            if parts:
+                mapping[parts[0]] = parts
     return mapping
 
-'''
-helper function to read in genes files that are already split
-NOTE: only when all query reads are split this function will be invoked
-'''
+
 def readSplitQueries(blastn_outdir):
-    # removing irrelevant files
-    existing_files = os.popen(f'ls {blastn_outdir}').read().strip().split('\n')
-    existing_files = [x for x in existing_files if x.startswith('queries')]
+    """Read previously split query files from a completed BLAST run."""
+    existing_files = [
+        f for f in os.listdir(blastn_outdir) if f.startswith('queries')]
     _LOG.info(
         f"Existing queries are assigned to ({len(existing_files)}) marker genes.")
 
     query_blast_paths = {}
-    for f in existing_files:
-        marker = f.split('-')[1].split('.')[0]
-        query_blast_paths[marker] = os.path.join(blastn_outdir, f)
+    for fname in existing_files:
+        marker = fname.split('-')[1].split('.')[0]
+        query_blast_paths[marker] = os.path.join(blastn_outdir, fname)
 
     query_aln = defaultdict(dict)
     for marker, infile in query_blast_paths.items():
-        cur_taxon = ""; cur_aln = None
-        f = open(infile, 'r')
-        for line in f:
-            if line.startswith('>'):
-                if cur_taxon != "":
-                    query_aln[cur_taxon] = cur_aln
-                    cur_aln = None
+        cur_taxon = ""
+        cur_aln = None
+        with open(infile, 'r') as f:
+            for line in f:
+                if line.startswith('>'):
+                    if cur_taxon != "":
+                        query_aln[cur_taxon] = cur_aln
+                        cur_aln = None
+                    else:
+                        cur_taxon = line.strip()[1:]
                 else:
-                    cur_taxon = line.strip()[1:]
-            else:
-                parts = eval(line.strip())
-                cur_aln = {'source_taxon': parts[0],
+                    parts = ast.literal_eval(line.strip())
+                    cur_aln = {
+                        'source_taxon': parts[0],
                         'qcov': parts[2] - parts[1],
                         'qstart': parts[1], 'qend': parts[2],
                         'qaln': parts[3],
                         'sstart': parts[4], 'send': parts[5],
-                        'saln': parts[6]}
+                        'saln': parts[6],
+                    }
         if cur_taxon != "":
             query_aln[cur_taxon] = cur_aln
-        f.close()
     return query_blast_paths, query_aln
 
-'''
-helper function to read in blastn output
-'''
 def readBlastnOutput(blastn_outpath, gene_mapping, threshold):
+    """Parse BLASTN default output and extract query-to-marker mappings."""
     query_aln = defaultdict(dict)
     query_markers_mapped = defaultdict(set)
 
@@ -287,13 +264,9 @@ def readBlastnOutput(blastn_outpath, gene_mapping, threshold):
             line = f.readline()
     return query_aln, query_markers_mapped
 
-'''
-helper function to update query_aln with a new entry recorded
-replace the old one if the new one has longer coverage
-returns a completely new entry for the following scan
-'''
 def updateQueryAlignment(query_aln, cur_taxon, cur_aln, threshold,
-        mapped_markers):
+                         mapped_markers):
+    """Update query_aln if the new alignment has better coverage; return a fresh entry."""
     # compute current query coverage
     mapped_marker = cur_aln['source_taxon'][1]
     new_mapped_markers = set(mapped_markers)
@@ -330,11 +303,8 @@ def updateQueryAlignment(query_aln, cur_taxon, cur_aln, threshold,
         'qstart': -1, 'qend': -1, 'qaln': '',
         'sstart': -1, 'send': -1, 'saln': ''}, new_mapped_markers
 
-'''
-helper function to slit queries to marker genes and write to local for
-alignment later
-'''
 def splitQueries(refpkg, query_aln, query_outdir):
+    """Split query reads by marker gene and write FASTA files."""
     _LOG.info("Writing assigned query reads to local.")
     markers = refpkg['genes']
 

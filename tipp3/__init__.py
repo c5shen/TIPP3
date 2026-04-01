@@ -1,107 +1,56 @@
-###########################################################################
-#    Copyright 2012 Siavash Mirarab, Nam Nguyen, and Tandy Warnow.
-#    This file is part of SEPP.
-#
-#    SEPP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    SEPP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with SEPP.  If not, see <http://www.gnu.org/licenses/>.
-###########################################################################
+"""
+TIPP3: Taxonomic Identification and Phylogenetic Profiling version 3.
 
-from operator import itemgetter
+Originally adapted from SEPP (Mirarab, Nguyen, Warnow 2012).
+Substantially rewritten for TIPP3 by Chengze Shen (2024-2025).
+"""
+
 import logging
 import os
+import sys
 
-'''
-Updated @ 4.16.2025 by Chengze Shen
+__version__ = "0.5"
 
-Major changes to suit TIPP3 pipeline.
-'''
-__version__ = "0.4a"
-_INSTALL_PATH = __path__[0]
-
-__all__ = ['read_binning', 'read_alignment', 'read_placement',
-        'tipp3_pipeline', 'jobs', 'refpkg_downloader']
-
-def get_setup_path():
-    return _INSTALL_PATH
+__all__ = ['query_binning', 'query_alignment', 'query_placement',
+           'tipp3_pipeline', 'jobs', 'refpkg_loader']
 
 
 def get_logging_level(logging_level='info'):
-    #### logging level map ####
-    logging_level_map = {
-            'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
-            'WARNING': logging.WARNING, 'ERROR': logging.ERROR,
-            'CRITICAL': logging.CRITICAL,
-            }
-    # obtain environment variable to determine the logging level,
-    # if TIPP3_LOGGING_LEVEL is not empty
+    """Resolve the effective logging level from env var or argument."""
+    level_map = {
+        'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
+        'WARNING': logging.WARNING, 'ERROR': logging.ERROR,
+        'CRITICAL': logging.CRITICAL,
+    }
     env_level = os.getenv('TIPP_LOGGING_LEVEL')
-    if env_level is not None:
-        ll = env_level.upper()
-    else:
-        ll = logging_level.upper()
-    return logging_level_map.get(ll, logging.INFO) 
-    #return logging.DEBUG if _DEBUG else logging.INFO
+    ll = env_level.upper() if env_level is not None else logging_level.upper()
+    return level_map.get(ll, logging.INFO)
 
-__set_loggers = set()
+
+_configured_loggers = set()
+
 
 def get_logger(name="tipp3", log_path=None, logging_level='info'):
+    """Get or create a named logger with consistent formatting."""
     logger = logging.getLogger(name)
-    if name not in __set_loggers:
+    if name not in _configured_loggers:
         level = get_logging_level(logging_level)
-        logging_formatter = logging.Formatter(
-            ("[%(asctime)s] %(filename)s (line %(lineno)d):"
-             " %(levelname) 8s: %(message)s"))
-        logging_formatter.datefmt = '%H:%M:%S'
+        formatter = logging.Formatter(
+            "[%(asctime)s] %(filename)s (line %(lineno)d): "
+            "%(levelname)8s: %(message)s",
+            datefmt='%H:%M:%S')
         logger.setLevel(level)
-        if log_path == None:
-            ch = logging.StreamHandler()
-        else:
-            # use FileHandler instead
-            ch = logging.FileHandler(log_path, mode='a')
 
-        ch.setLevel(level)
-        ch.setFormatter(logging_formatter)
-        logger.addHandler(ch)
-        __set_loggers.add(name)
+        if log_path is None:
+            handler = logging.StreamHandler()
+        else:
+            handler = logging.FileHandler(log_path, mode='a')
+
+        handler.setLevel(level)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        _configured_loggers.add(name)
     return logger
 
 
-#### unused for TIPP3 for now
-#def reset_loggers():
-#    global __set_loggers
-#    __set_loggers = set()
-#    import pkgutil
-#    import sepp
-#    package = sepp
-#    for modl, name, _ in pkgutil.iter_modules(package.__path__):
-#        logger = (getattr(getattr(sepp, name, None), "_LOG", None))
-#        print("--- *", name, logger)
-#        if logger:
-#            setattr(getattr(sepp, name, None), "_LOG", get_logger(
-#                "tipp3.%s" % name))
-
-
-def log_exception(logger):
-    """Logs the exception trace to the logObj as an error"""
-    import traceback
-    import io
-    s = io.StringIO()
-    traceback.print_exc(None, s)
-    logger.error(s.getvalue())
-    exit(1)
-
-os.sys.setrecursionlimit(1000000)
-
-
-def sort_by_value(d, reverse=False):
-    return sorted(iter(d.items()), key=itemgetter(1), reverse=reverse)
+sys.setrecursionlimit(1000000)

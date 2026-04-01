@@ -1,31 +1,32 @@
-import os
-import zipfile
+"""
+Load and download TIPP3 reference packages.
+"""
+
+import os, subprocess, zipfile
 from tipp3.configs import Configs
-from tipp3 import get_logger, log_exception
+from tipp3 import get_logger
 
 _LOG = get_logger(__name__)
 
-'''
-Load TIPP3 reference package in
-'''
+
 def loadReferencePackage(refpkg_path, refpkg_version):
+    """Load a TIPP3 reference package from disk."""
     refpkg = {}
 
-    # sanity check for the existence of refpkg_path
     if not refpkg_path or not os.path.exists(refpkg_path):
-        errmsg = ('Refpkg does not exist: {}'.format(refpkg_path) + 
-            '\nPlease download reference package using subcommand ' +
-            '\"download_refpkg\"')
-        _LOG.error(errmsg)
-        raise ValueError(errmsg)
+        raise FileNotFoundError(
+            f"Reference package not found: {refpkg_path}\n"
+            "Download it with: tipp3 download_refpkg -d <path> --decompress")
 
-    # refpkg dir path from commandline
     path = os.path.join(refpkg_path, refpkg_version)
-    input = os.path.join(path, "file-map-for-tipp.txt")
-    _LOG.info('Reading refpkg from {}'.format(path))
+    filemap = os.path.join(path, "file-map-for-tipp.txt")
+    if not os.path.exists(filemap):
+        raise FileNotFoundError(
+            f"file-map-for-tipp.txt not found in {path}. "
+            f"Is '{refpkg_version}' the correct refpkg version?")
+    _LOG.info(f'Loading refpkg from {path}')
 
-    # load exclusion list, if any
-    exclusion = set() 
+    exclusion = set()
     try:
         raw = getattr(Configs, 'refpkg').exclusion
         exclusion = set(raw.strip().split(','))
@@ -33,80 +34,76 @@ def loadReferencePackage(refpkg_path, refpkg_version):
         pass
 
     refpkg["genes"] = []
-    with open(input) as f:
-        for line in f.readlines():
-            [key, val] = line.split('=')
+    with open(filemap) as f:
+        for line in f:
+            line = line.strip()
+            if not line or '=' not in line:
+                continue
+            key, val = line.split('=', 1)
+            key1, key2 = key.strip().split(':', 1)
 
-            [key1, key2] = key.strip().split(':')
-
-            # hotfix before pushing a new version of TIPP3 refpkg
-            # --> change all "taxonomy.table" to "all_taxon.taxonomy"
-            if val == 'taxonomy.table':
+            if val.strip() == 'taxonomy.table':
                 val = 'all_taxon.taxonomy'
             val = os.path.join(path, val.strip())
 
-            try:
-                refpkg[key1][key2] = val
-            except KeyError:
+            if key1 not in refpkg:
                 refpkg[key1] = {}
-                refpkg[key1][key2] = val
+            refpkg[key1][key2] = val
 
-            if (key1 != "blast") and (key1 != "taxonomy"):
+            if key1 not in ("blast", "taxonomy"):
                 refpkg["genes"].append(key1)
-    
-    # add path variable to each marker gene refpkg
-    # to use with pplacer-taxtastic
-    for marker in refpkg["genes"]:
-        marker_refpkg_path = os.path.join(path, f"{marker}.refpkg")
-        refpkg[marker]['path'] = marker_refpkg_path
 
-    # excluding marker genes if specified
-    _LOG.info('Excluding markers (if exist): {}'.format(exclusion))
-    refpkg["genes"] = set(refpkg["genes"]).difference(exclusion)
-    refpkg["genes"] = list(refpkg["genes"])
-    _LOG.info('Marker genes: {}'.format(refpkg["genes"]))
-    _LOG.info('Number of marker genes: {}'.format(len(refpkg["genes"])))
+    for marker in refpkg["genes"]:
+        refpkg[marker]['path'] = os.path.join(path, f"{marker}.refpkg")
+
+    if exclusion:
+        _LOG.info(f'Excluding markers: {exclusion}')
+    refpkg["genes"] = list(set(refpkg["genes"]) - exclusion)
+    _LOG.info(f'Loaded {len(refpkg["genes"])} marker genes: {refpkg["genes"]}')
 
     return refpkg
 
-'''
-Download the latest TIPP reference package
-'''
+
 def downloadReferencePackage(outdir, decompress=False):
-    # latest version name, hosted on Illinois Databank
-    latest_version = 'tipp3-refpkg-1-2.zip' 
+    """Download the latest TIPP3 reference package from Illinois Databank."""
+    latest_version = 'tipp3-refpkg-1-2.zip'
     url = 'https://databank.illinois.edu/datafiles/sarfb/download'
 
-    _LOG.info(f"Downloading the latest TIPP reference package from {url}")
-
-    # specify the name of the downloaded zipfile
+    os.makedirs(outdir, exist_ok=True)
     outpath = os.path.join(outdir, latest_version)
-    if os.path.exists(outpath):
-        _LOG.warning(
-                f"{outpath} exists! Skipped download to avoid overwriting.")
-    else:
-        cmd = f"wget {url} -O {outpath}"
-        os.system(cmd)
 
-    # identify the extract directory name
+    if os.path.exists(outpath):
+        _LOG.info(f"{outpath} already exists, skipping download.")
+    else:
+        _LOG.info(f"Downloading TIPP3 reference package from {url}")
+        result = subprocess.run(
+            ['wget', url, '-O', outpath],
+            capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Download failed (exit code {result.returncode}):\n"
+                f"{result.stderr}")
+
     try:
         zf = zipfile.ZipFile(outpath)
-    except FileNotFoundError as e:
-        log_exception(_LOG)
-    files = zf.namelist()
-    dir = files[0].split('/')[0]
+    except (FileNotFoundError, zipfile.BadZipFile) as e:
+        raise RuntimeError(
+            f"Cannot open downloaded file {outpath}: {e}") from e
 
-    # decompress if specified
+    files = zf.namelist()
+    refpkg_dir = files[0].split('/')[0]
+
     if decompress:
-        _LOG.info(f"Decompressing {os.path.basename(outpath)} to {outdir}")
-        if os.path.isdir(dir):
-            _LOG.warning(f"\"{dir}/\" from the zipfile exists at {outdir}! "
-                    "Skipped decompression to avoid overwriting.")
+        target = os.path.join(outdir, refpkg_dir)
+        if os.path.isdir(target):
+            _LOG.info(f"'{refpkg_dir}/' already exists, skipping extraction.")
         else:
-            cmd = f"unzip -d {outdir} {outpath}"
-            os.system(cmd)
-            _LOG.info(f"Decompressed refpkg directory name: {dir}")
+            _LOG.info(f"Extracting {os.path.basename(outpath)} to {outdir}")
+            zf.extractall(outdir)
+            _LOG.info(f"Extracted refpkg: {refpkg_dir}")
     else:
-        _LOG.info("Finished downloading. To use with TIPP3, please "
-            f"decompress the downloaded file at {outpath}")
+        _LOG.info(f"Downloaded to {outpath}. "
+                  f"To use, decompress with: unzip -d {outdir} {outpath}")
+
+    zf.close()
     return True

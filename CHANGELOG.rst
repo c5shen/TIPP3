@@ -1,3 +1,24 @@
+TIPP3 v0.5
+----------
+#. Major code refactoring and cleanup.
+#. Replaced the Java ``TIPPJsonMerger`` classification tool with a native
+   Python implementation (``jplace_classifier.py``), using an efficient
+   bottom-up LCA algorithm. This eliminates the Java runtime dependency and
+   dramatically improves classification speed.
+#. Fixed a CSV parsing bug where taxonomy names containing commas (e.g.,
+   ``Salmonella enterica subsp. enterica serovar 6,7:-:1,5``) caused
+   misaligned fields in classification and abundance outputs. All taxonomy
+   I/O now uses Python's ``csv`` module.
+#. Removed dead code: unused Java sources (``tipp3/tools/merge/``), unused
+   helper modules (``math_utils.py``, ``pyhmmer_tools.py``), unused classes
+   (``TIPPJsonMergerJob``, ``GenericJob``, ``CompactAlignment``), and unused
+   functions across multiple modules.
+#. Cleaned up unused imports across the codebase and removed ``numpy`` and
+   ``psutil`` from dependencies.
+#. Improved error handling: replaced ``eval()`` with ``ast.literal_eval()``,
+   replaced ``exit()`` with ``sys.exit()``, and improved logging messages
+   throughout the pipeline.
+
 TIPP3 v0.4a
 -----------
 #. Updated output files for ``detection`` subcommand. Now will write detected

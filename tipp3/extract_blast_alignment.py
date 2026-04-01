@@ -1,8 +1,9 @@
-'''
-Extract and return the blast alignment paths
-'''
+"""
+Extract query alignments from BLAST pairwise output.
+"""
 
-import os, sys, re
+import ast
+import os, re
 from collections import defaultdict
 
 from tipp3 import get_logger
@@ -10,59 +11,16 @@ from tipp3.helpers.alignment_tools import ExtendedAlignment
 
 _LOG = get_logger(__name__)
 
-global complement_map
-complement_map = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+_COMPLEMENT_MAP = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
-'''
-Reverse-complement given sequences. Retain characters that are not {A, T, C, G}
-'''
 def reverseComplement(seq):
-    try:
-        char_list = [complement_map[c] for c in seq]
-    except KeyError:
-        char_list = [complement_map[c] if c in complement_map else c for c in seq]
-    new_seq = ''.join(char_list)
-    return new_seq[::-1]
+    """Reverse-complement a DNA sequence. Non-ATCG characters are preserved."""
+    char_list = [_COMPLEMENT_MAP.get(c, c) for c in seq]
+    return ''.join(char_list[::-1])
 
-'''
-Given an aligned string (represented by upper/lower case letters and gaps,
-return a condensed version that have the lowercase letters from both sides
-compressed to front/back.
-'''
-def compressInsertions(seq):
-    p = re.compile(r'[A-Z]+')
-    alns = [(m.start(), m.end()) for m in p.finditer(seq)]
-    # do not perform such task if there is no aligned column at all
-    if len(alns) == 0:
-        return seq
 
-    # first occurrence of aligned position defines the back of front search space
-    # i.e., [start, end)
-    f_start, f_end = 0, alns[0][0]
-    f_len = f_end - f_start
-
-    # last occurrence of aligned position defines the front of the back search space
-    b_start, b_end = alns[-1][1], len(seq)
-    b_len = b_end - b_start
-
-    # simplest way of compression: remove all gaps and add them back
-    f_str_ins = seq[f_start:f_end].replace('-', '')
-    f_len_ins = len(f_str_ins)
-    f_str = f_str_ins + '-' * (f_len - f_len_ins)
-
-    b_str_ins = seq[b_start:b_end].replace('-', '')
-    b_len_ins = len(b_str_ins)
-    b_str = '-' * (b_len - b_len_ins) + b_str_ins
-
-    # combine the compressed front/back with the remaining sequence
-    combined = f_str + seq[f_end:b_start] + b_str
-
-    return combined
-
-'''
-Obtain retained columns of a target sequence
-'''
 def getRetainedColumns(aln, target_keys):
+    """Map each non-gap position index to its column index in the alignment."""
     target_to_retained_columns = {}
     aln_len = aln.sequence_length()
     
@@ -77,10 +35,8 @@ def getRetainedColumns(aln, target_keys):
         target_to_retained_columns[target] = retained_columns
     return target_to_retained_columns
 
-'''
-Obtain aligned columns of query seq to target
-'''
 def getAlignedColumns(taxon, seq_len, aln_seq, target_seq, target_start):
+    """Determine which backbone columns each query position aligns to."""
     # obtain aligned columns of the query sequence (to the target sequence)
     qidx = 0; tidx = target_start
     aligned_columns = [-1] * seq_len
@@ -180,10 +136,8 @@ def getAlignedColumns(taxon, seq_len, aln_seq, target_seq, target_start):
 #    combined = compressInsertions(''.join(result))
 #    return combined
 
-'''
-Convert combined sequence to an Extended Alignment object
-'''
 def getQueryExtendedAlignment(taxon, combined):
+    """Convert a combined (mixed-case) sequence string to an ExtendedAlignment."""
     # get an extended alignment object with just the query sequence and its updatd indexes
     query = ExtendedAlignment([])
     query[taxon] = combined; query._reset_col_names()
@@ -195,10 +149,8 @@ def getQueryExtendedAlignment(taxon, combined):
             query._col_labels[i] = regular; regular += 1
     return query
 
-'''
-Directly construct the query alignment to backbone by setting characters based on retained_columns
-'''
 def constructCombined(seq, backbone_length, aligned_columns, retained_columns):
+    """Construct the aligned query sequence against the backbone."""
     ret = ['-'] * backbone_length   # initialize as gaps, later modify to be characters from seq
     for i in range(len(aligned_columns)):
         target_col = aligned_columns[i]
@@ -219,7 +171,7 @@ def extractionRunner(marker, inpath, bbpath, outpath):
         lines = f.read().strip().split('\n')
         for i in range(0, len(lines), 2):
             taxon = lines[i].split('>')[1]
-            items = eval(lines[i+1])
+            items = ast.literal_eval(lines[i+1])
             mapped[taxon] = items
 
     # compute retained columns just for once for the target marker gene sequences that appear
@@ -228,7 +180,6 @@ def extractionRunner(marker, inpath, bbpath, outpath):
         target_keys.add(mapped[taxon][0][0])
     target_to_retained_columns = getRetainedColumns(aln, target_keys)
 
-    #for taxon in tqdm(mapped.keys(), total=len(mapped), **tqdm_styles):
     for taxon in mapped.keys():
         aln_seq = mapped[taxon][3]
         target = mapped[taxon][0][0]
@@ -271,10 +222,8 @@ def extractionRunner(marker, inpath, bbpath, outpath):
     #bbaln = aln.sub_alignment(list(bbset))
     #bbaln.write(outbackbonepath, 'FASTA')
 
-'''
-entry point for extracting BLAST alignment
-'''
 def extractBlastAlignment(refpkg, workdir, query_blast_paths):
+    """Entry point: extract pairwise BLAST alignments for all marker genes."""
     _LOG.info("Started extracting query pairwise alignments from BLAST output") 
 
     # each marker's BLAST result path is determined in query_blast_paths
